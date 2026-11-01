@@ -1,53 +1,56 @@
 #!/usr/bin/env bash
-# Instala el comando `spiral`: añade un alias al rc de tu shell y prepara .env.
-#   ./install.sh              instalar (se puede repetir)
-#   ./install.sh --uninstall  quitar el alias
+# Installs the `spiral` command on macOS (Apple Silicon). Safe to run again: it updates spiral
+# and never overwrites your configuration.
+#   curl -LsSf https://raw.githubusercontent.com/sbonacho/spiral/main/install.sh | bash
 set -euo pipefail
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BEGIN="# >>> spiral >>>"
-END="# <<< spiral <<<"
+SOURCE="${SPIRAL_INSTALL_SOURCE:-git+https://github.com/sbonacho/spiral}"
+CONFIG_DIR="$HOME/.config/spiral"
 
-case "$(basename "${SHELL:-}")" in
-  zsh)  RC="$HOME/.zshrc" ;;
-  bash) RC="$HOME/.bash_profile"; [ -f "$HOME/.bashrc" ] && [ ! -f "$RC" ] && RC="$HOME/.bashrc" ;;
-  *)    echo "Shell no soportado (${SHELL:-desconocido}): añade a mano  alias spiral='$DIR/spiral'" >&2; exit 1 ;;
-esac
-
-remove_block() {
-  [ -f "$RC" ] && sed -i.bak "/^$BEGIN\$/,/^$END\$/d" "$RC" && rm -f "$RC.bak"
-  return 0
-}
-
-if [ "${1:-}" = "--uninstall" ]; then
-  remove_block
-  echo "Alias quitado de $RC. (El proyecto y tu .env siguen en $DIR.)"
-  exit 0
+if [ "$(uname -s)" != "Darwin" ] || [ "$(uname -m)" != "arm64" ]; then
+  echo "spiral only supports macOS on Apple Silicon for now (transcription uses MLX)." >&2
+  echo "Nothing was installed." >&2
+  exit 1
 fi
 
-chmod +x "$DIR/spiral" "$DIR/engine.py"
+if ! command -v uv >/dev/null 2>&1; then
+  echo "Installing uv (https://astral.sh/uv)..."
+  curl -LsSf https://astral.sh/uv/install.sh | bash
+  export PATH="$HOME/.local/bin:$PATH"
+fi
 
-remove_block
-{
-  echo "$BEGIN"
-  echo "alias spiral='$DIR/spiral'"
-  echo "$END"
-} >> "$RC"
+echo "Installing spiral..."
+uv tool install --force "$SOURCE"
+uv tool update-shell >/dev/null 2>&1 || true   # adds uv's tool bin dir to your shell profile if missing (idempotent)
 
-if [ ! -f "$DIR/.env" ]; then
-  cp "$DIR/.env.example" "$DIR/.env"
-  chmod 600 "$DIR/.env"
-  echo "Creado $DIR/.env: edítalo (SOURCE_DIR, ARCHIVE_DIR y las claves)."
+mkdir -p "$CONFIG_DIR"
+if [ ! -f "$CONFIG_DIR/.env" ]; then
+  cat > "$CONFIG_DIR/.env" <<'ENV'
+# Global spiral settings. A .env in the directory where you run `spiral` overrides these, variable by variable.
+# Empty values are ignored. Keep this file private: it can hold secrets.
+
+# Summary provider: claude (default, needs the `claude` CLI), gemini or ollama
+# LLM_PROVIDER=claude
+# GEMINI_API_KEY=
+# OLLAMA_MODEL=
+
+# Archive.org keys (https://archive.org/account/s3.php) for the audio hosting
+# IA_ACCESS_KEY=
+# IA_SECRET_KEY=
+ENV
+  chmod 600 "$CONFIG_DIR/.env"
+  echo "Created $CONFIG_DIR/.env"
 fi
 
 echo
-echo "Comprobando requisitos:"
 missing=0
-for cmd in python3 ffmpeg ffprobe uv claude git; do
-  if command -v "$cmd" >/dev/null 2>&1; then echo "  ✔ $cmd"; else echo "  ✘ $cmd (falta)"; missing=1; fi
+for tool in ffmpeg ffprobe; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "Missing: $tool  ->  brew install ffmpeg"
+    missing=1
+  fi
 done
-[ "$missing" = 1 ] && echo "  Instala lo que falta antes de procesar (README, sección 2)."
+[ "$missing" = 0 ] && echo "ffmpeg: ok"
 
 echo
-echo "Instalado: alias 'spiral' en $RC"
-echo "Abre una terminal nueva, o ejecuta:  source $RC"
+echo "Done. Open a new terminal and run:  spiral --version"

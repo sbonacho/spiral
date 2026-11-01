@@ -1,0 +1,186 @@
+import json
+
+import pytest
+
+from conftest import make_cfg
+from spiral import destinations
+from spiral.destinations import Result, discover, site
+from spiral.destinations.base import Network, Pending
+from spiral.errors import SpiralError
+from spiral.workspace import DONE, read_state
+
+CONTENT = {"titulo": "Prueba", "resumen_corto": "corto", "resumen_largo": "l", "capitulos": [],
+           "tags": ["radio"], "hilo_x": ["t"], "post_blog_md": "x", "clips": []}
+SITE_ENV = {"SITE_URL": "https://e.github.io/p", "PODCAST_TITLE": "T", "PODCAST_DESCRIPTION": "d",
+            "PODCAST_AUTHOR": "a", "PODCAST_EMAIL": "a@e.com", "PODCAST_CATEGORY": "Society & Culture",
+            "IA_ACCESS_KEY": "k", "IA_SECRET_KEY": "s"}
+
+
+def episode(work, name="a"):
+    d = work / "processed" / name
+    d.mkdir(parents=True)
+    (d / "contenido.json").write_text(json.dumps(CONTENT))
+    (d / DONE).write_text("{}")
+    return d
+
+
+def fake_network(calls, fail=(), key="bluesky"):
+    def pub(ctx):
+        calls.append(ctx.account)
+        ctx.secrets.add("SECRETO-123456")
+        if ctx.account in fail:
+            raise RuntimeError("boom SECRETO-123456")
+        return f"ref-{ctx.account}"
+    return Network(key, "Fake", pub, lambda ctx: f"[{key}/{ctx.account}] texto", required=("HANDLE", "APP_PASSWORD"))
+
+
+@pytest.fixture
+def two_accounts(work, monkeypatch):
+    calls = []
+    monkeypatch.setattr(destinations, "NETWORKS", (fake_network(calls, fail=("malo",)),))
+    values = dict(SITE_ENV, BLUESKY_ACCOUNTS="programa,personal,malo",
+                  BLUESKY_PROGRAMA_HANDLE="h", BLUESKY_PROGRAMA_APP_PASSWORD="pass-programa",
+                  BLUESKY_PERSONAL_HANDLE="h2", BLUESKY_PERSONAL_APP_PASSWORD="pass-personal",
+                  BLUESKY_MALO_HANDLE="h3", BLUESKY_MALO_APP_PASSWORD="pass-malo")
+    episode(work)
+    return make_cfg(work, **values), calls
+
+
+def test_two_accounts_are_distinct_destinations(two_accounts):
+    cfg, _ = two_accounts
+    ids = [d.id for d in discover(cfg)]
+    assert "bluesky/programa" in ids and "bluesky/personal" in ids
+
+
+def test_incomplete_account_names_missing_variable(work, monkeypatch):
+    monkeypatch.setattr(destinations, "NETWORKS", (fake_network([]),))
+    cfg = make_cfg(work, **SITE_ENV, BLUESKY_ACCOUNTS="programa", BLUESKY_PROGRAMA_HANDLE="h")
+    d = next(d for d in discover(cfg) if d.id == "bluesky/programa")
+    assert not d.configured and d.missing == ("BLUESKY_PROGRAMA_APP_PASSWORD",)
+
+
+def test_account_only_in_local_env_is_offered(work, monkeypatch):
+    monkeypatch.setattr(destinations, "NETWORKS", (fake_network([]),))
+    cfg = make_cfg(work, **SITE_ENV, BLUESKY_ACCOUNTS="a,b", BLUESKY_A_HANDLE="1", BLUESKY_A_APP_PASSWORD="2",
+                   BLUESKY_B_HANDLE="3", BLUESKY_B_APP_PASSWORD="4")
+    assert {"bluesky/a", "bluesky/b"} <= {d.id for d in discover(cfg)}
+
+
+def test_site_missing_names_variables(work):
+    d = discover(make_cfg(work))[0]
+    assert d.id == "site" and "SITE_URL" in d.missing
+
+
+def test_unconfigured_or_unknown_destination_is_rejected(two_accounts):
+    cfg, _ = two_accounts
+    with pytest.raises(SpiralError, match="desconocido"):
+        destinations.publish(cfg, "a", ["nada/x"])
+    cfg2 = make_cfg(cfg.root, **{k: v for k, v in cfg.values.items() if k != "BLUESKY_PROGRAMA_APP_PASSWORD"})
+    with pytest.raises(SpiralError, match="BLUESKY_PROGRAMA_APP_PASSWORD"):
+        destinations.publish(cfg2, "a", ["bluesky/programa"])
+
+
+def test_pending_episode_cannot_be_published(work):
+    (work / "a.mov").write_bytes(b"x")
+    with pytest.raises(SpiralError, match="no está procesado"):
+        destinations.publish(make_cfg(work), "a", ["site"])
+
+
+def test_partial_failure_is_isolated_and_recorded(two_accounts):
+    cfg, calls = two_accounts
+    res = destinations.publish(cfg, "a", ["bluesky/malo", "bluesky/programa"], log=lambda m: None)
+    by = {r.id: r.status for r in res}
+    assert by == {"bluesky/malo": "failed", "bluesky/programa": "ok"}
+    state = read_state(cfg.root / "published" / "a")["destinations"]
+    assert state["bluesky/programa"]["done"] and "bluesky/malo" not in state
+
+
+def test_republishing_is_skipped(two_accounts):
+    cfg, calls = two_accounts
+    destinations.publish(cfg, "a", ["bluesky/programa"], log=lambda m: None)
+    res = destinations.publish(cfg, "a", ["bluesky/programa"], log=lambda m: None)
+    assert res[0].status == "skipped" and calls == ["programa"]
+
+
+def test_dry_run_touches_nothing(two_accounts):
+    cfg, calls = two_accounts
+    out = []
+    res = destinations.publish(cfg, "a", ["bluesky/programa"], dry=True, log=out.append)
+    assert res[0].status == "simulated" and calls == [] and any("texto" in m for m in out)
+    assert not (cfg.root / "published").exists()
+
+
+def test_log_never_contains_secrets(two_accounts):
+    cfg, _ = two_accounts
+    shown = []
+    destinations.publish(cfg, "a", ["bluesky/malo"], log=shown.append)
+    text = (cfg.root / "published" / "a" / "publish.log").read_text()
+    assert "failed" in text and "SECRETO-123456" not in text and "pass-malo" not in text
+    assert all("SECRETO-123456" not in m for m in shown)
+
+
+def test_manual_destination_only_recorded_if_confirmed(work, monkeypatch):
+    def pub(ctx):
+        if ctx.ask("manual", "¿hecho?"):
+            return {"manual": True}
+        raise Pending("sin confirmar")
+    monkeypatch.setattr(destinations, "NETWORKS", (Network("x", "X", pub, lambda c: "", manual=True),))
+    cfg = make_cfg(work, **SITE_ENV, X_ACCOUNTS="programa")
+    episode(work)
+    no = destinations.publish(cfg, "a", ["x/programa"], log=lambda m: None, ask=lambda k, q: False)
+    assert no[0].status == "pending" and not (work / "published" / "a" / "state.json").exists()
+    yes = destinations.publish(cfg, "a", ["x/programa"], log=lambda m: None, ask=lambda k, q: True)
+    assert yes[0].status == "ok"
+    assert read_state(work / "published" / "a")["destinations"]["x/programa"]["mode"] == "manual"
+
+
+def test_site_failure_blocks_dependents(two_accounts, monkeypatch):
+    cfg, calls = two_accounts
+    monkeypatch.setattr(site, "publish", lambda ctx: (_ for _ in ()).throw(SpiralError("sin red")))
+    res = destinations.publish(cfg, "a", ["bluesky/programa", "site"], log=lambda m: None)
+    assert {r.id: r.status for r in res} == {"site": "failed", "bluesky/programa": "not-attempted"}
+    assert calls == []
+
+
+def test_checkpoint_keeps_partial_progress(work, monkeypatch):
+    def pub(ctx):
+        ctx.partial["video"] = "v1"
+        ctx.checkpoint(ctx.partial)
+        raise RuntimeError("se cayó")
+    monkeypatch.setattr(destinations, "NETWORKS", (Network("bluesky", "B", pub, lambda c: ""),))
+    cfg = make_cfg(work, **SITE_ENV, BLUESKY_ACCOUNTS="p")
+    episode(work)
+    destinations.publish(cfg, "a", ["bluesky/p"], log=lambda m: None)
+    info = read_state(work / "published" / "a")["destinations"]["bluesky/p"]
+    assert info == {"done": False, "partial": {"video": "v1"}}
+
+
+def test_site_publish_creates_scaffold_post_feed_without_overwriting(work, monkeypatch):
+    d = episode(work)
+    (d / "episodio.mp3").write_bytes(b"mp3")
+    (d / "transcripcion.txt").write_text("hola\nmundo")
+    monkeypatch.setattr(site, "upload_archive", lambda *a, **k: None)
+    monkeypatch.setattr(site, "duration", lambda p: 61)
+    (work / "site").mkdir()
+    (work / "site" / "index.md").write_text("mío")
+    cfg = make_cfg(work, **SITE_ENV)
+    res = destinations.publish(cfg, "a", ["site"], log=lambda m: None)
+    assert res[0].status == "ok"
+    s = work / "site"
+    assert (s / "index.md").read_text() == "mío" and (s / "_config.yml").exists()
+    assert len(list((s / "_posts").glob("*.md"))) == 1
+    feed = (s / "feed.xml").read_text()
+    assert "<itunes:duration>0:01:01</itunes:duration>" in feed and "archive.org/download" in feed
+
+
+def test_site_without_git_repo_does_not_push(work, monkeypatch):
+    d = episode(work)
+    (d / "episodio.mp3").write_bytes(b"mp3")
+    (d / "transcripcion.txt").write_text("x")
+    monkeypatch.setattr(site, "upload_archive", lambda *a, **k: None)
+    monkeypatch.setattr(site, "duration", lambda p: 1)
+    pushed = []
+    monkeypatch.setattr(site, "git_publish", lambda *a: pushed.append(1))
+    logs = []
+    destinations.publish(make_cfg(work, **SITE_ENV), "a", ["site"], log=logs.append, ask=lambda k, q: True)
+    assert not pushed and any("no es un repositorio git" in m for m in logs)

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spiral-cli"
+version = "0.1.0"
+description = "Process radio-show recordings and publish them to podcast platforms and social networks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+  "mlx-whisper",
+  "questionary",
+  "rich",
+  "internetarchive",
+  "google-api-python-client",
+  "google-auth-oauthlib",
+  "atproto",
+  "Mastodon.py",
+]
+
+[project.scripts]
+spiral = "spiral.cli:main"
+
+[dependency-groups]
+dev = ["pytest", "pexpect"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spiral"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

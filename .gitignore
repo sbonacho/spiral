@@ -1,4 +1,14 @@
-__pycache__/
-.DS_Store
+# secrets and local data
 .env
-informe.html
+processed/
+published/
+site/
+
+# python
+__pycache__/
+*.egg-info/
+.venv/
+dist/
+.pytest_cache/
+
+.DS_Store

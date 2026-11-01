@@ -1,3 +1,6 @@
+> **Historical notes.** This is the original research and design (in Spanish), written before the current
+> architecture. The up-to-date requirements and design are in [`openspec/`](../openspec/).
+
 # Diseño: automatización del podcast/programa "callespiral"
 
 Fecha: 2026-10-31 · Objetivo de coste: 0 € · Plataforma de proceso: Mac Apple Silicon (local)
