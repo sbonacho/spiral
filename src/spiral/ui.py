@@ -69,7 +69,8 @@ def pick_episode(episodes, message, usable):
         icon, _color, label = STAGE[ep.stage]
         title = f"{icon} {ep.name}" + (f" — {ep.title}" if ep.title else "") + f"  ({_(label)})"
         choices.append(questionary.Choice(title, ep.name, disabled=usable(ep)))
-    if not any(c.disabled is None for c in choices):
+    if not any(c.disabled is None for c in choices):   # questionary falla si todas están deshabilitadas
+        info(_("No hay ningún episodio que se pueda elegir para esta acción."))
         return None
     return questionary.select(message + " " + _("(escribe para buscar)"), choices=choices, use_search_filter=True,
                               use_jk_keys=False, use_arrow_keys=True).ask()

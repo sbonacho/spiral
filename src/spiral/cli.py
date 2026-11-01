@@ -88,6 +88,9 @@ def cmd_publish(cfg, args):
     if args.to:
         ids = [i.strip() for i in args.to.split(",") if i.strip()]
     elif tty:
+        if not any(d.configured for d in dests):   # questionary falla si todas las casillas están deshabilitadas
+            ui.show_destinations(dests)
+            raise SpiralError(_("Ningún destino configurado: rellena el .env (mira .env.example y el README)."))
         ids = ui.pick_destinations(dests, set(ep.done_destinations))
     else:
         raise UsageError(_("Falta --to <destino>[,...]"))

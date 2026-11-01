@@ -154,4 +154,6 @@ EN = {
     'Instagram (Reels)': 'Instagram (Reels)',
     'X (enlaces; publicas tú)': 'X (links; you post)',
     'TikTok (subida a mano)': 'TikTok (manual upload)',
+    'Ningún destino configurado: rellena el .env (mira .env.example y el README).': 'No destination is configured: fill in the .env (see .env.example and the README).',
+    'No hay ningún episodio que se pueda elegir para esta acción.': 'There is no episode that can be chosen for this action.',
 }
