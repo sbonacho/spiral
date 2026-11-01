@@ -56,3 +56,26 @@ Las operaciones largas (transcripción, codificación, subidas) SHALL mostrar un
 #### Scenario: Subida de un vídeo
 - **WHEN** se sube un vídeo a YouTube
 - **THEN** la salida muestra el avance de la subida
+
+### Requirement: Idioma de la interfaz
+El sistema SHALL mostrar los mensajes, la ayuda, las preguntas, las etiquetas, los errores y el informe HTML en el idioma indicado por `PODCAST_LANGUAGE` cuando sea español (`es`) o inglés (`en`), ignorando la región (por ejemplo `en-US`), y en inglés para cualquier otro idioma. Si `PODCAST_LANGUAGE` no está definida, el sistema SHALL usar español. El idioma de la interfaz MUST NOT depender de ninguna otra variable de configuración.
+
+#### Scenario: Sin PODCAST_LANGUAGE
+- **WHEN** `PODCAST_LANGUAGE` no está definida y el usuario ejecuta `spiral --help`
+- **THEN** la ayuda se muestra en español
+
+#### Scenario: Programa en inglés
+- **WHEN** `PODCAST_LANGUAGE=en` y el usuario ejecuta `spiral list`
+- **THEN** los encabezados, estados y mensajes se muestran en inglés
+
+#### Scenario: Idioma sin traducción
+- **WHEN** `PODCAST_LANGUAGE=fr`
+- **THEN** la interfaz se muestra en inglés
+
+#### Scenario: Variante regional
+- **WHEN** `PODCAST_LANGUAGE=es-MX`
+- **THEN** la interfaz se muestra en español
+
+#### Scenario: Informe en el idioma elegido
+- **WHEN** `PODCAST_LANGUAGE=en` y el usuario ejecuta `spiral view`
+- **THEN** el informe HTML está en inglés y su etiqueta `lang` es `en`

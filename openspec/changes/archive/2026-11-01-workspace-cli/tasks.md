@@ -44,7 +44,7 @@
 
 - [x] 6.1 Escribir `install.sh` (macOS arm64, `uv`, `uv tool install --force`, PATH sin duplicar, `~/.config/spiral/.env` sin sobrescribir, aviso de `ffmpeg`, sin `sudo`). Verificación: ejecutarlo con `HOME` temporal dos veces, comprobar una sola línea de PATH y que un `.env` previo no cambia.
 - [x] 6.2 Plantilla `.env` comentada para el global y `.env.example` para el local con todas las variables y el esquema de cuentas. Verificación: un `.env.example` copiado sin tocar no configura ninguna red.
-- [ ] 6.3 Probar la instalación de extremo a extremo desde GitHub en una cuenta de usuario limpia. Verificación: la línea del README deja `spiral --version` funcionando en una terminal nueva.
+- [x] 6.3 Probar la instalación de extremo a extremo desde GitHub en una cuenta de usuario limpia. Verificación: la línea del README deja `spiral --version` funcionando en una terminal nueva.
 
 ## 7. Documentación y repositorio público
 
@@ -61,3 +61,10 @@
 
 - [x] 8.1 Ejecutar todas las pruebas y `openspec validate workspace-cli --strict`. Verificación: ambas terminan sin errores.
 - [x] 8.2 Recorrido manual completo en un directorio con un `.mov` real: `list` → `process` → `publish --dry-run` → `view`. Verificación: los ficheros aparecen en `processed/` y `published/` y el informe es correcto.
+
+## 9. Idioma de la interfaz
+
+- [x] 9.1 Crear `i18n.py` (español como origen, catálogo en inglés, idioma fijado desde `PODCAST_LANGUAGE`) y envolver todos los mensajes visibles. Verificación: prueba que cada mensaje de `_()` del código tiene traducción y los mismos marcadores `{}`.
+- [x] 9.2 Traducir ayuda de argparse, panel, tabla, selectores, resultados, logs del procesado y de los destinos, errores e informe HTML (`lang`). Verificación: pruebas con `es`, `en`, `fr` y `es-MX` sobre `--help`, `list`, un error y el informe.
+- [x] 9.3 Documentar la variable en los README y `.env.example`. Verificación: ambos README explican que `PODCAST_LANGUAGE` fija también el idioma de la interfaz.
+- [x] 9.4 El instalador retira el alias antiguo de versiones previas (bloque `# >>> spiral >>>`) para que no tape el comando nuevo. Verificación: con un `HOME` temporal que contiene el bloque y otras líneas, tras instalar queda solo lo ajeno al bloque.

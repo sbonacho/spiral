@@ -9,6 +9,7 @@ from email.utils import format_datetime
 from xml.sax.saxutils import escape
 
 from ..errors import SpiralError
+from ..i18n import _
 
 ID = "site"
 LABEL = "Audio + blog + RSS"
@@ -60,7 +61,7 @@ def upload_archive(cfg, identifier, mp3, title, description, language):
         metadata={"title": title, "description": description, "mediatype": "audio",
                   "language": language, "collection": "opensource_audio"})
     if not all(r.status_code == 200 for r in res):
-        raise SpiralError("Falló la subida a Archive.org (¿IA_ACCESS_KEY/IA_SECRET_KEY en el .env o 'ia configure'?)")
+        raise SpiralError(_("Falló la subida a Archive.org (¿IA_ACCESS_KEY/IA_SECRET_KEY en el .env o 'ia configure'?)"))
 
 
 def write_post(site_dir, ep, content, transcript, audio_url, slug, fecha):
@@ -138,8 +139,8 @@ def git_publish(site_dir, message):
 
 def preview(ctx):
     mp3 = ctx.ep.dir / "episodio.mp3"
-    return (f"[site] subir {mp3.name} a Archive.org, crear la entrada «{ctx.content['titulo']}» "
-            f"y regenerar feed.xml\n  {ctx.url}")
+    return _("[site] subir {mp3} a Archive.org, crear la entrada «{title}» y regenerar feed.xml",
+             mp3=mp3.name, title=ctx.content["titulo"]) + f"\n  {ctx.url}"
 
 
 def publish(ctx):
@@ -151,7 +152,7 @@ def publish(ctx):
     identifier = f"{slugify(pod['title'])}-{fecha:%Y%m%d}-{slug}"[:100]
     audio_url = f"https://archive.org/download/{identifier}/{mp3.name}"
 
-    ctx.log("  subiendo el mp3 a Archive.org…")
+    ctx.log(_("  subiendo el mp3 a Archive.org…"))
     upload_archive(cfg, identifier, mp3, content["titulo"], content["resumen_corto"], pod["language"])
     site_dir = cfg.site_dir
     ensure_scaffold(site_dir, pod)
@@ -165,9 +166,9 @@ def publish(ctx):
     ctx.log(f"  audio: {audio_url}\n  feed: {pod['site_url']}/feed.xml")
 
     if not is_own_repo(site_dir):
-        ctx.log("  site/ no es un repositorio git: sube su contenido tú (ver el README).")
-    elif ctx.ask("push", "¿Subir site/ a GitHub (necesario para que el RSS se actualice)?"):
+        ctx.log(_("  site/ no es un repositorio git: sube su contenido tú (ver el README)."))
+    elif ctx.ask("push", _("¿Subir site/ a GitHub (necesario para que el RSS se actualice)?")):
         git_publish(site_dir, f"Episode: {content['titulo']}")
     else:
-        ctx.log("  site/ preparado, sin subir.")
+        ctx.log(_("  site/ preparado, sin subir."))
     return {"audio": audio_url}

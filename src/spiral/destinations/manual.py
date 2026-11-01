@@ -2,6 +2,7 @@
 import subprocess
 import urllib.parse
 
+from ..i18n import _
 from .base import Network, Pending
 
 
@@ -12,26 +13,27 @@ def x_links(ctx):
 
 
 def x_preview(ctx):
-    return f"[x/{ctx.account}] abre cada enlace y pulsa Publicar:\n" + "\n".join(f"  {u}" for u in x_links(ctx))
+    return (_("[x/{account}] abre cada enlace y pulsa Publicar:", account=ctx.account) + "\n"
+            + "\n".join(f"  {u}" for u in x_links(ctx)))
 
 
 def x_publish(ctx):
     ctx.log(x_preview(ctx))
-    if ctx.ask("manual", f"¿Ya has publicado el hilo en x/{ctx.account}? Se anotará como publicado"):
+    if ctx.ask("manual", _("¿Ya has publicado el hilo en x/{account}? Se anotará como publicado", account=ctx.account)):
         return {"manual": True}
-    raise Pending("sin confirmar")
+    raise Pending(_("sin confirmar"))
 
 
 def tiktok_preview(ctx):
-    return f"[tiktok/{ctx.account}] sube a mano los clips de {ctx.ep.dir / 'clips'}"
+    return _("[tiktok/{account}] sube a mano los clips de {path}", account=ctx.account, path=ctx.ep.dir / "clips")
 
 
 def tiktok_publish(ctx):
     ctx.log(tiktok_preview(ctx))
     subprocess.run(["open", str(ctx.ep.dir / "clips")])
-    if ctx.ask("manual", f"¿Ya has subido los clips a tiktok/{ctx.account}? Se anotará como publicado"):
+    if ctx.ask("manual", _("¿Ya has subido los clips a tiktok/{account}? Se anotará como publicado", account=ctx.account)):
         return {"manual": True}
-    raise Pending("sin confirmar")
+    raise Pending(_("sin confirmar"))
 
 
 X = Network("x", "X (enlaces; publicas tú)", x_publish, x_preview, manual=True)

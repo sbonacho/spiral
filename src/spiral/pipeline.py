@@ -15,6 +15,7 @@ from pathlib import Path
 
 from . import summary
 from .errors import SpiralError
+from .i18n import _
 from .workspace import DONE, Workspace
 
 WHISPER_MODEL = "mlx-community/whisper-large-v3-turbo"
@@ -26,9 +27,9 @@ def run(cmd, **kw):
     try:
         return subprocess.run([str(c) for c in cmd], check=True, **kw)
     except FileNotFoundError:
-        raise SpiralError(f"No encuentro '{cmd[0]}'. Instálalo (por ejemplo: brew install ffmpeg).")
+        raise SpiralError(_("No encuentro '{cmd}'. Instálalo (por ejemplo: brew install ffmpeg).", cmd=cmd[0]))
     except subprocess.CalledProcessError as e:
-        raise SpiralError(f"Falló {cmd[0]} (código {e.returncode}).") from e
+        raise SpiralError(_("Falló {cmd} (código {code}).", cmd=cmd[0], code=e.returncode)) from e
 
 
 def probe(path):
@@ -54,7 +55,7 @@ def concat(parts, program, dest, log):
             f.writelines(f"file '{Path(p).resolve()}'\n" for p in parts)
         run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", f.name, "-c", "copy", dest])
         return
-    log("  formatos distintos: recodifico al formato del programa")
+    log(_("  formatos distintos: recodifico al formato del programa"))
     ref = info[parts.index(program)]
     w, h = ref["size"]
     ins, chains = [], []
@@ -145,13 +146,13 @@ def process_episode(cfg, name, log=print, redo=False):
     ws = Workspace(cfg)
     ep = ws.episode(name)
     if ep.conflict:
-        raise SpiralError(f"Conflicto: existen {name}.mov en el directorio y {ep.dir}. No toco nada; "
-                          "renombra o mueve uno de los dos.")
+        raise SpiralError(_("Conflicto: existen {name}.mov en el directorio y {dir}. No toco nada; renombra o mueve uno de los dos.",
+                          name=name, dir=ep.dir))
     if ep.processed and not redo:
-        raise SpiralError(f"{name} ya está procesado; para rehacerlo hay que confirmarlo explícitamente.")
+        raise SpiralError(_("{name} ya está procesado; para rehacerlo hay que confirmarlo explícitamente.", name=name))
     src = ep.original
     if src is None:
-        raise SpiralError(f"No encuentro el .mov de «{name}» (ni en el directorio ni en {ep.dir}).")
+        raise SpiralError(_("No encuentro el .mov de «{name}» (ni en el directorio ni en {dir}).", name=name, dir=ep.dir))
 
     ws.processed_root.mkdir(parents=True, exist_ok=True)
     tmp = ws.processed_root / f".{name}.tmp"
@@ -159,7 +160,8 @@ def process_episode(cfg, name, log=print, redo=False):
         shutil.rmtree(tmp)
     tmp.mkdir(exist_ok=True)
     intro, outro = cfg.find_piece("intro"), cfg.find_piece("outro")
-    log(f"== {name}  (intro: {'sí' if intro else 'no'}, outro: {'sí' if outro else 'no'})")
+    log(_("== {name}  (intro: {intro}, outro: {outro})", name=name,
+          intro=_("sí") if intro else _("no"), outro=_("sí") if outro else _("no")))
 
     final_mov, mp3 = tmp / "episodio.mov", tmp / "episodio.mp3"
     if not final_mov.exists():
@@ -168,38 +170,38 @@ def process_episode(cfg, name, log=print, redo=False):
         concat(parts, src, raw, log)
         loudnorm(raw, final_mov)
         raw.unlink()
-    log("  vídeo final OK")
+    log(_("  vídeo final OK"))
 
     if not mp3.exists():
         run(["ffmpeg", "-y", "-v", "error", "-i", final_mov, "-vn", "-c:a", "libmp3lame", "-b:a", "128k", mp3])
-    log("  mp3 OK")
+    log(_("  mp3 OK"))
 
     if not (tmp / "transcripcion.json").exists():
-        log("  transcribiendo…")
+        log(_("  transcribiendo…"))
         transcribe(src, tmp, cfg.language, cfg.get("PODCAST_TITLE"))
     segs = json.loads((tmp / "transcripcion.json").read_text())
-    log("  transcripción OK")
+    log(_("  transcripción OK"))
 
     if not (tmp / "contenido.json").exists():
         content = summary.summarize(cfg, segs, log, probe(intro)["duration"] if intro else 0)
         (tmp / "contenido.json").write_text(json.dumps(content, ensure_ascii=False, indent=2))
     content = json.loads((tmp / "contenido.json").read_text())
-    log("  resumen OK")
+    log(_("  resumen OK"))
 
     (tmp / "clips").mkdir(exist_ok=True)
     for n, clip in enumerate(content["clips"], 1):
         dest = tmp / "clips" / f"clip{n}.mp4"
         if not dest.exists():
-            log(f"  clip {n}/{len(content['clips'])}…")
+            log(_("  clip {n}/{total}…", n=n, total=len(content["clips"])))
             make_clip(src, segs, clip, dest)
-    log("  clips OK")
+    log(_("  clips OK"))
 
     files = sorted(str(p.relative_to(tmp)) for p in tmp.rglob("*") if p.is_file())
     (tmp / DONE).write_text(json.dumps(
         {"version": 1, "processed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
          "provider": cfg.get("LLM_PROVIDER", "claude"), "files": files}, indent=1))
     _swap_in(tmp, ep, src)
-    log(f"  listo -> {ep.dir}")
+    log(_("  listo -> {dir}", dir=ep.dir))
 
 
 def _swap_in(tmp, ep, src):

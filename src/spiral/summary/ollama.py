@@ -3,13 +3,14 @@ import urllib.error
 import urllib.request
 
 from ..errors import SpiralError
+from ..i18n import _
 
 DEFAULT_URL = "http://localhost:11434"
 
 
 def check(cfg):
     if not cfg.get("OLLAMA_MODEL"):
-        raise SpiralError("LLM_PROVIDER=ollama necesita OLLAMA_MODEL en el .env.")
+        raise SpiralError(_("LLM_PROVIDER=ollama necesita OLLAMA_MODEL en el .env."))
 
 
 def complete(cfg, prompt):
@@ -21,4 +22,4 @@ def complete(cfg, prompt):
         with urllib.request.urlopen(req, timeout=1800) as r:
             return json.load(r)["message"]["content"]
     except (urllib.error.URLError, KeyError) as e:
-        raise SpiralError(f"No pude usar Ollama en {url}: {e}") from e
+        raise SpiralError(_("No pude usar Ollama en {url}: {error}", url=url, error=e)) from e

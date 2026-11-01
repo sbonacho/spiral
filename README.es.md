@@ -10,7 +10,7 @@ Convierte las grabaciones de tu programa de radio en un podcast y en publicacion
 curl -LsSf https://raw.githubusercontent.com/sbonacho/spiral/main/install.sh | bash
 ```
 
-Solo macOS con Apple Silicon (la transcripción se ejecuta en local con MLX). El script instala [uv](https://docs.astral.sh/uv/) si no lo tienes, instala `spiral` como herramienta global, se asegura de que la carpeta de herramientas esté en el `PATH` y crea `~/.config/spiral/.env` para tu configuración global. No usa `sudo` y nunca sobrescribe tu configuración. Vuelve a ejecutarlo para actualizar; es [lo bastante corto para leerlo antes](install.sh). Para quitarlo: `uv tool uninstall spiral-cli`.
+Solo macOS con Apple Silicon (la transcripción se ejecuta en local con MLX). El script instala [uv](https://docs.astral.sh/uv/) si no lo tienes, instala `spiral` como herramienta global, se asegura de que la carpeta de herramientas esté en el `PATH` y crea `~/.config/spiral/.env` para tu configuración global. No usa `sudo` y nunca sobrescribe tu configuración (solo retira el bloque de alias `# >>> spiral >>>` que añadían las primeras versiones a `~/.zshrc`, `~/.bash_profile` o `~/.bashrc`, porque taparía el comando nuevo). Vuelve a ejecutarlo para actualizar; es [lo bastante corto para leerlo antes](install.sh). Para quitarlo: `uv tool uninstall spiral-cli`.
 
 Necesitas también `ffmpeg` (`brew install ffmpeg`) y un proveedor de resúmenes (ver [Resúmenes](#resúmenes)).
 
@@ -141,6 +141,8 @@ Define `LLM_PROVIDER`:
 | `claude` (por defecto) | La [CLI `claude`](https://claude.com/claude-code) con sesión iniciada | Usa tu plan de Claude; `CLAUDE_MODEL` para cambiar el modelo (por defecto `claude-sonnet-5-5`). |
 | `gemini` | `GEMINI_API_KEY` (opcional `GEMINI_MODEL`) | Hay plan gratuito; revisa las condiciones de Google sobre el uso de datos. |
 | `ollama` | `OLLAMA_MODEL` y un Ollama local (`OLLAMA_URL` opcional) | Totalmente offline, nada sale de tu máquina. |
+
+**Idioma:** `PODCAST_LANGUAGE` (por defecto `es`) fija el idioma de la transcripción y de los textos generados, y también el de los mensajes, preguntas, ayuda e informe de spiral: español para `es` (y `es-MX`...), inglés para `en` y para cualquier otro idioma.
 
 **Privacidad:** con `claude` y `gemini` la transcripción completa se envía a ese proveedor; spiral indica cuál antes de enviarla. El resumen y los textos se escriben en `PODCAST_LANGUAGE` (por defecto `es`), que es también el idioma de la transcripción.
 

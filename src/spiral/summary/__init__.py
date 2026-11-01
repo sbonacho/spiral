@@ -2,6 +2,7 @@
 import json
 
 from ..errors import SpiralError
+from ..i18n import _
 from . import claude, gemini, ollama
 
 PROVIDERS = {"claude": claude, "gemini": gemini, "ollama": ollama}
@@ -30,18 +31,18 @@ TRANSCRIPT:
 def validate(data):
     """Comprueba la estructura; lanza SpiralError con el primer problema."""
     if not isinstance(data, dict):
-        raise SpiralError("La respuesta del proveedor no es un objeto JSON.")
+        raise SpiralError(_("La respuesta del proveedor no es un objeto JSON."))
     for key in REQUIRED:
         if key not in data:
-            raise SpiralError(f"Falta '{key}' en la respuesta del proveedor.")
+            raise SpiralError(_("Falta '{key}' en la respuesta del proveedor.", key=key))
     for key in ("capitulos", "tags", "hilo_x", "clips"):
         if not isinstance(data[key], list):
-            raise SpiralError(f"'{key}' debe ser una lista.")
+            raise SpiralError(_("'{key}' debe ser una lista.", key=key))
     if not data["hilo_x"]:
-        raise SpiralError("'hilo_x' no puede estar vacío.")
+        raise SpiralError(_("'hilo_x' no puede estar vacío."))
     for clip in data["clips"]:
         if not isinstance(clip, dict) or not {"inicio", "fin", "gancho", "titulo"} <= clip.keys():
-            raise SpiralError("Cada clip necesita inicio, fin, gancho y titulo.")
+            raise SpiralError(_("Cada clip necesita inicio, fin, gancho y titulo."))
     return data
 
 
@@ -49,17 +50,17 @@ def parse(text):
     try:
         return validate(json.loads(text[text.index("{"): text.rindex("}") + 1]))
     except ValueError as e:  # incluye JSONDecodeError y .index() sin llaves
-        raise SpiralError(f"La respuesta del proveedor no es JSON válido: {e}") from e
+        raise SpiralError(_("La respuesta del proveedor no es JSON válido: {error}", error=e)) from e
 
 
 def summarize(cfg, segs, log, offset_intro=0):
     provider = cfg.get("LLM_PROVIDER", "claude")
     module = PROVIDERS.get(provider)
     if module is None:
-        raise SpiralError(f"LLM_PROVIDER={provider} no es válido; usa uno de: {', '.join(PROVIDERS)}")
+        raise SpiralError(_("LLM_PROVIDER={provider} no es válido; usa uno de: {valid}", provider=provider, valid=", ".join(PROVIDERS)))
     module.check(cfg)  # falla antes de enviar nada si falta configuración
-    where = "se queda en tu máquina" if provider == "ollama" else f"se enviará a {provider}"
-    log(f"  resumen con {provider}: la transcripción {where}")
+    where = _("se queda en tu máquina") if provider == "ollama" else _("se enviará a {provider}", provider=provider)
+    log(_("  resumen con {provider}: la transcripción {where}", provider=provider, where=where))
     transcript = "\n".join(f"[{s['start']:.0f}] {s['text'].strip()}" for s in segs)
     data = parse(module.complete(cfg, PROMPT.format(language=cfg.language) + transcript))
     data["offset_intro"] = offset_intro  # los tiempos son del programa; en el vídeo final suma la intro

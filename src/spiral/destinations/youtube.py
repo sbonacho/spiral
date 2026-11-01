@@ -3,6 +3,7 @@ from pathlib import Path
 
 from ..config import global_dir
 from ..errors import SpiralError
+from ..i18n import _
 from .base import Network, read_token, write_token
 
 SCOPE = ["https://www.googleapis.com/auth/youtube.upload"]
@@ -44,7 +45,7 @@ def service(ctx):
         if creds and creds.refresh_token:
             creds.refresh(Request())
         else:
-            ctx.log("  se abre el navegador para autorizar YouTube…")
+            ctx.log(_("  se abre el navegador para autorizar YouTube…"))
             creds = InstalledAppFlow.from_client_secrets_file(
                 str(secret_path(ctx.cfg, ctx.account)), SCOPE).run_local_server(port=0)
         write_token("youtube", ctx.account, creds.to_json())
@@ -62,7 +63,7 @@ def upload(ctx, yt, path, title, desc, tags):
     while resp is None:
         status, resp = req.next_chunk()
         if status:
-            ctx.log(f"    subiendo {int(status.progress() * 100)}%")
+            ctx.log(_("    subiendo {pct}%", pct=int(status.progress() * 100)))
     return resp["id"]
 
 
@@ -76,7 +77,7 @@ def preview(ctx):
 def publish(ctx):
     c, ep = ctx.content, ctx.ep
     if not ctx.url:
-        raise SpiralError("Falta SITE_URL.")
+        raise SpiralError(_("Falta SITE_URL."))
     yt = service(ctx)
     state = ctx.partial
     if "video" not in state:
@@ -88,7 +89,7 @@ def publish(ctx):
             shorts[str(n)] = upload(ctx, yt, ep.dir / "clips" / f"clip{n}.mp4", f"{clip['titulo'][:90]} #Shorts",
                                     f"{clip['gancho']}\n\n{ctx.url}\n#Shorts", c["tags"])
             ctx.checkpoint(state)
-    ctx.log("  YouTube: subido en PRIVADO; publícalo en studio.youtube.com (o tras la auditoría de la API)")
+    ctx.log(_("  YouTube: subido en PRIVADO; publícalo en studio.youtube.com (o tras la auditoría de la API)"))
     return dict(state)
 
 

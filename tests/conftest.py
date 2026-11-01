@@ -5,7 +5,7 @@ import pytest
 
 from spiral.config import Config
 
-ENV_KEYS = ("LLM_PROVIDER", "PROCESSED_DIR", "PUBLISHED_DIR", "SITE_URL", "GEMINI_API_KEY", "OLLAMA_MODEL")
+ENV_KEYS = ("PODCAST_LANGUAGE", "LLM_PROVIDER", "PROCESSED_DIR", "PUBLISHED_DIR", "SITE_URL", "GEMINI_API_KEY", "OLLAMA_MODEL")
 
 
 @pytest.fixture(autouse=True)
@@ -17,6 +17,14 @@ def isolated_home(tmp_path, monkeypatch):
     for key in ENV_KEYS:
         monkeypatch.delenv(key, raising=False)
     return home
+
+
+@pytest.fixture(autouse=True)
+def reset_language():
+    from spiral import i18n
+    i18n.set_language("es")
+    yield
+    i18n.set_language("es")
 
 
 @pytest.fixture

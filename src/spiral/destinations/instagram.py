@@ -7,6 +7,7 @@ import urllib.parse
 import urllib.request
 
 from ..errors import SpiralError
+from ..i18n import _
 from .base import Network, hashtags, read_token, token_path, write_token
 from .site import git_publish, is_own_repo
 
@@ -27,7 +28,7 @@ def call(method, path, **params):
         with urllib.request.urlopen(req, timeout=60) as r:
             return json.load(r)
     except urllib.error.HTTPError as e:
-        raise SpiralError(f"Instagram API {path}: {e.code} {e.read().decode()[:300]}") from e
+        raise SpiralError(_("Instagram API {path}: {code} {body}", path=path, code=e.code, body=e.read().decode()[:300])) from e
 
 
 def token(ctx):
@@ -41,7 +42,7 @@ def token(ctx):
         with urllib.request.urlopen(url, timeout=60) as r:
             tok = json.load(r)["access_token"]
     except urllib.error.HTTPError as e:
-        ctx.log(f"  (no se pudo renovar el token de Instagram: {e.code})")  # solo se renueva pasadas 24 h
+        ctx.log(_("  (no se pudo renovar el token de Instagram: {code})", code=e.code))  # solo se renueva pasadas 24 h
     ctx.secrets.add(tok)
     write_token("instagram", ctx.account, {"access_token": tok})
     return tok
@@ -57,7 +58,7 @@ def wait_public(url, tries=30):
         except urllib.error.URLError:
             pass
         time.sleep(15)
-    raise SpiralError(f"{url} no está público tras {tries * 15} s")
+    raise SpiralError(_("{url} no está público tras {seconds} s", url=url, seconds=tries * 15))
 
 
 def reel(tok, user_id, video_url, caption):
@@ -69,8 +70,8 @@ def reel(tok, user_id, video_url, caption):
         if status == "FINISHED":
             return call("POST", f"{user_id}/media_publish", creation_id=cid, access_token=tok)["id"]
         if status in ("ERROR", "EXPIRED"):
-            raise SpiralError(f"Instagram: el contenedor {cid} terminó en {status}")
-    raise SpiralError(f"Instagram: el contenedor {cid} sigue procesándose; reintenta más tarde")
+            raise SpiralError(_("Instagram: el contenedor {cid} terminó en {status}", cid=cid, status=status))
+    raise SpiralError(_("Instagram: el contenedor {cid} sigue procesándose; reintenta más tarde", cid=cid))
 
 
 def base_url(ctx):
@@ -98,13 +99,13 @@ def publish(ctx):
         return dict(ctx.partial)
     site_dir = ctx.cfg.site_dir
     if not is_own_repo(site_dir):
-        raise SpiralError("Instagram necesita que site/ sea un repositorio git publicado (GitHub Pages).")
+        raise SpiralError(_("Instagram necesita que site/ sea un repositorio git publicado (GitHub Pages)."))
     tok = token(ctx)
     dest = site_dir / "media" / slug
     dest.mkdir(parents=True, exist_ok=True)
     for n in todo:
         shutil.copy(ctx.ep.dir / "clips" / f"clip{n}.mp4", dest / f"clip{n}.mp4")
-    ctx.log("  subiendo los clips a site/ para que Meta pueda descargarlos…")
+    ctx.log(_("  subiendo los clips a site/ para que Meta pueda descargarlos…"))
     git_publish(site_dir, f"Clips: {slug}")
     for n, cap in todo.items():
         wait_public(f"{base}/clip{n}.mp4")

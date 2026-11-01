@@ -10,7 +10,7 @@ Turn the recordings of your radio show into a podcast and social posts, from you
 curl -LsSf https://raw.githubusercontent.com/sbonacho/spiral/main/install.sh | bash
 ```
 
-macOS on Apple Silicon only (transcription runs locally with MLX). The script installs [uv](https://docs.astral.sh/uv/) if you don't have it, installs `spiral` as a global tool, makes sure the tool folder is on your `PATH`, and creates `~/.config/spiral/.env` for your global settings. It never uses `sudo` and never overwrites your configuration. Run it again to update; it is [short enough to read first](install.sh). Remove with `uv tool uninstall spiral-cli`.
+macOS on Apple Silicon only (transcription runs locally with MLX). The script installs [uv](https://docs.astral.sh/uv/) if you don't have it, installs `spiral` as a global tool, makes sure the tool folder is on your `PATH`, and creates `~/.config/spiral/.env` for your global settings. It never uses `sudo` and never overwrites your configuration (it only removes the `# >>> spiral >>>` alias block that early versions added to `~/.zshrc`, `~/.bash_profile` or `~/.bashrc`, because it would hide the new command). Run it again to update; it is [short enough to read first](install.sh). Remove with `uv tool uninstall spiral-cli`.
 
 You also need `ffmpeg` (`brew install ffmpeg`) and a summary provider (see [Summaries](#summaries)).
 
@@ -141,6 +141,8 @@ Set `LLM_PROVIDER`:
 | `claude` (default) | The [`claude` CLI](https://claude.com/claude-code) logged in | Uses your Claude plan; `CLAUDE_MODEL` to change the model (default `claude-sonnet-5-5`). |
 | `gemini` | `GEMINI_API_KEY` (optional `GEMINI_MODEL`) | Free tier available; check Google's terms about data use. |
 | `ollama` | `OLLAMA_MODEL` and a local Ollama (`OLLAMA_URL` optional) | Fully offline, nothing leaves your machine. |
+
+**Language:** `PODCAST_LANGUAGE` (default `es`) sets the language of the transcript and the generated texts, and also of spiral's own messages, prompts, help and report: Spanish for `es` (and `es-MX`...), English for `en` and for any other language.
 
 **Privacy:** with `claude` and `gemini` the full transcript is sent to that provider; spiral prints which one before sending. The summary and the posts are written in `PODCAST_LANGUAGE` (default `es`), which is also the transcription language.
 

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .errors import SpiralError
+from .i18n import _
 
 PODCAST_REQUIRED = ("PODCAST_TITLE", "PODCAST_DESCRIPTION", "PODCAST_AUTHOR", "PODCAST_EMAIL",
                     "PODCAST_CATEGORY", "SITE_URL")
@@ -60,8 +61,8 @@ class Config:
         name = self.get(key, default)
         path = Path(name)
         if path.is_absolute() or ".." in path.parts or str(path) == ".":
-            raise SpiralError(f"{key}={name}: debe ser una ruta relativa dentro del directorio "
-                              "de trabajo, sin '..'")
+            raise SpiralError(_("{key}={name}: debe ser una ruta relativa dentro del directorio de trabajo, sin '..'",
+                                key=key, name=name))
         return self.root / path
 
     @property
@@ -86,7 +87,7 @@ class Config:
     def podcast(self):
         """Metadatos del programa; falla si falta alguno obligatorio."""
         if missing := self.missing_podcast():
-            raise SpiralError(f"Faltan en el .env: {', '.join(missing)}")
+            raise SpiralError(_("Faltan en el .env: {missing}", missing=", ".join(missing)))
         return {"title": self.get("PODCAST_TITLE"), "description": self.get("PODCAST_DESCRIPTION"),
                 "author": self.get("PODCAST_AUTHOR"), "email": self.get("PODCAST_EMAIL"),
                 "language": self.language, "category": self.get("PODCAST_CATEGORY"),
@@ -96,8 +97,8 @@ class Config:
         names = [a.strip().lower() for a in self.get(f"{network.upper()}_ACCOUNTS", "").split(",") if a.strip()]
         for name in names:
             if not _ACCOUNT_NAME.match(name):
-                raise SpiralError(f"{network.upper()}_ACCOUNTS: '{name}' solo puede tener letras, "
-                                  "números y '_'")
+                raise SpiralError(_("{var}: '{name}' solo puede tener letras, números y '_'",
+                                    var=f"{network.upper()}_ACCOUNTS", name=name))
         return names
 
     def field(self, network, account, name):

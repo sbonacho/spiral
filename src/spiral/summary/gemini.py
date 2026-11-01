@@ -3,13 +3,14 @@ import urllib.error
 import urllib.request
 
 from ..errors import SpiralError
+from ..i18n import _
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
 
 def check(cfg):
     if not cfg.get("GEMINI_API_KEY"):
-        raise SpiralError("LLM_PROVIDER=gemini necesita GEMINI_API_KEY en el .env.")
+        raise SpiralError(_("LLM_PROVIDER=gemini necesita GEMINI_API_KEY en el .env."))
 
 
 def complete(cfg, prompt):
@@ -22,6 +23,6 @@ def complete(cfg, prompt):
         with urllib.request.urlopen(req, timeout=300) as r:
             return json.load(r)["candidates"][0]["content"]["parts"][0]["text"]
     except urllib.error.HTTPError as e:
-        raise SpiralError(f"Gemini respondió {e.code}: {e.read().decode()[:200]}") from e
+        raise SpiralError(_("Gemini respondió {code}: {body}", code=e.code, body=e.read().decode()[:200])) from e
     except (urllib.error.URLError, KeyError, IndexError) as e:
-        raise SpiralError(f"No pude usar Gemini: {e}") from e
+        raise SpiralError(_("No pude usar Gemini: {error}", error=e)) from e

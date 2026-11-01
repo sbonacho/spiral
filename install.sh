@@ -23,6 +23,14 @@ echo "Installing spiral..."
 uv tool install --force "$SOURCE"
 uv tool update-shell >/dev/null 2>&1 || true   # adds uv's tool bin dir to your shell profile if missing (idempotent)
 
+# Older versions added an alias block to your shell profile; it would shadow the new command, so remove it.
+for rc in "$HOME/.zshrc" "$HOME/.bash_profile" "$HOME/.bashrc"; do
+  if [ -f "$rc" ] && grep -q '^# >>> spiral >>>$' "$rc" && grep -q '^# <<< spiral <<<$' "$rc"; then
+    sed -i.bak '/^# >>> spiral >>>$/,/^# <<< spiral <<<$/d' "$rc" && rm -f "$rc.bak"
+    echo "Removed the old spiral alias from $rc"
+  fi
+done
+
 mkdir -p "$CONFIG_DIR"
 if [ ! -f "$CONFIG_DIR/.env" ]; then
   cat > "$CONFIG_DIR/.env" <<'ENV'
