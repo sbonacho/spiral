@@ -1,0 +1,5 @@
+title: Calle Spiral
+theme: minima
+lang: es
+timezone: Europe/Madrid
+exclude: [podcast.json, episodes]
