@@ -107,6 +107,7 @@ EN = {
     'Informe de episodios': 'Episodes report',
     'Episodio': 'Episode',
     'Estado': 'State',
+    'Duración': 'Duration',
     'Publicados (de los procesados)': 'Published (of the processed)',
     '✔ publicado · ✘ no publicado · – sin procesar · «a mano» = anotado manualmente (X y TikTok).': '✔ published · ✘ not published · – not processed · “by hand” = recorded manually (X and TikTok).',
     'no publicado': 'not published',

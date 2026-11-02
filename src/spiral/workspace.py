@@ -8,6 +8,8 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import media
+
 DONE = "done.json"
 STATE = "state.json"
 RESERVED = ("intro", "outro")
@@ -21,6 +23,7 @@ class Episode:
     published: Path           # published/<nombre>
     processed: bool
     title: str = ""
+    duration: int | None = None   # segundos; solo lo rellena Workspace.episodes()
     destinations: dict = field(default_factory=dict)
 
     @property
@@ -36,6 +39,12 @@ class Episode:
     @property
     def conflict(self):
         return self.mov is not None and self.processed
+
+    @property
+    def media(self):
+        """Fichero cuya duración se muestra: el mp3 del episodio procesado o el .mov pendiente."""
+        mp3 = self.dir / "episodio.mp3"
+        return mp3 if self.processed and mp3.is_file() else self.mov
 
     @property
     def original(self):
@@ -89,4 +98,8 @@ class Workspace:
         return ep
 
     def episodes(self):
-        return [self.episode(n) for n in self.names()]
+        eps = [self.episode(n) for n in self.names()]
+        found = media.durations([ep.media for ep in eps if ep.media])
+        for ep in eps:
+            ep.duration = found.get(ep.media)
+        return eps

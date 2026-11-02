@@ -2,6 +2,7 @@
 import html
 from datetime import datetime
 
+from . import media
 from .destinations import discover
 from .i18n import _, language
 from .workspace import Workspace
@@ -46,7 +47,7 @@ def render(cfg, episodes):
             totals[i] += bool(ep.destinations.get(i, {}).get("done"))
             cells.append(cell(ep, i))
         rows.append(f'<tr><th scope="row">{html.escape(ep.name)}<small>{html.escape(ep.title)}</small></th>'
-                    f'<td><span role="img" aria-label="{_(label)}">{icon}</span> {_(label)}</td>{"".join(cells)}</tr>')
+                    f'<td>{media.clock(ep.duration)}</td><td><span role="img" aria-label="{_(label)}">{icon}</span> {_(label)}</td>{"".join(cells)}</tr>')
     n_proc = sum(e.processed for e in episodes)
     counts = {s: sum(e.stage == s for e in episodes) for s in STAGES}
     foot = "".join(f"<td>{totals[i]}/{n_proc}</td>" for i in ids)
@@ -69,11 +70,11 @@ small {{ display:block; color:var(--mut); font-weight:400; white-space:normal; m
 <h1>{_("Informe de episodios")}</h1>
 <p>{summary}</p>
 <div class="wrap"><table>
-<thead><tr><th scope="col">{_("Episodio")}</th><th scope="col">{_("Estado")}</th>{head}</tr></thead>
+<thead><tr><th scope="col">{_("Episodio")}</th><th scope="col">{_("Duración")}</th><th scope="col">{_("Estado")}</th>{head}</tr></thead>
 <tbody>
 {chr(10).join(rows)}
 </tbody>
-<tfoot><tr><td colspan="2">{_("Publicados (de los procesados)")}</td>{foot}</tr></tfoot>
+<tfoot><tr><td colspan="3">{_("Publicados (de los procesados)")}</td>{foot}</tr></tfoot>
 </table></div>
 <p><small>{_("✔ publicado · ✘ no publicado · – sin procesar · «a mano» = anotado manualmente (X y TikTok).")}</small></p>
 </body></html>

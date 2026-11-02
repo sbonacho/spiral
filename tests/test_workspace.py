@@ -50,3 +50,18 @@ def test_conflict_when_original_and_processed_coexist(work):
     processed(work, "a")
     (work / "a.mov").write_bytes(b"x")
     assert Workspace(make_cfg(work)).episode("a").conflict
+
+
+def test_durations_are_listed_and_cached(work, monkeypatch):
+    from spiral import media
+    from spiral.workspace import Workspace
+    from conftest import make_cfg
+    (work / "a.mov").write_bytes(b"x")
+    (work / "b.mov").write_bytes(b"yy")
+    calls = []
+    monkeypatch.setattr(media, "probe", lambda p: calls.append(p.name) or (3725 if p.name == "a.mov" else None))
+    eps = {e.name: e for e in Workspace(make_cfg(work)).episodes()}
+    assert eps["a"].duration == 3725 and eps["b"].duration is None
+    assert media.clock(3725) == "1:02:05" and media.clock(754) == "12:34" and media.clock(None) == "–"
+    Workspace(make_cfg(work)).episodes()
+    assert sorted(calls) == ["a.mov", "b.mov", "b.mov"]   # a viene de la caché; b falló y se reintenta

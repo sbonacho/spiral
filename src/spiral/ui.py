@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
+from . import media
 from .i18n import _
 
 console = Console()
@@ -43,11 +44,11 @@ def show_destinations(dests):
 
 def show_list(episodes):
     table = Table(show_header=True, header_style="bold")
-    for col in (_("Episodio"), _("Título"), _("Estado"), _("Publicado en")):
-        table.add_column(col)
+    for col in (_("Episodio"), _("Título"), _("Duración"), _("Estado"), _("Publicado en")):
+        table.add_column(col, justify="right" if col == _("Duración") else "left")
     for ep in episodes:
         icon, color, label = STAGE[ep.stage]
-        table.add_row(escape(ep.name), escape(ep.title), f"[{color}]{icon} {_(label)}[/]",
+        table.add_row(escape(ep.name), escape(ep.title), media.clock(ep.duration), f"[{color}]{icon} {_(label)}[/]",
                       escape(", ".join(ep.done_destinations)) or "–")
     console.print(table if episodes else f"[dim]{_('No hay .mov ni episodios en este directorio.')}[/]")
 
@@ -67,7 +68,7 @@ def pick_episodes(episodes, message, usable):
     choices = []
     for ep in episodes:
         icon, _color, label = STAGE[ep.stage]
-        title = f"{icon} {ep.name}" + (f" — {ep.title}" if ep.title else "") + f"  ({_(label)})"
+        title = f"{icon} {ep.name}" + (f" — {ep.title}" if ep.title else "") + f"  ({_(label)}) · {media.clock(ep.duration)}"
         choices.append(questionary.Choice(title, ep.name, disabled=usable(ep)))
     if not any(c.disabled is None for c in choices):   # questionary falla si todas están deshabilitadas
         info(_("No hay ningún episodio que se pueda elegir para esta acción."))
