@@ -30,8 +30,8 @@ def discover(cfg):
     return out
 
 
-def publish(cfg, name, ids, *, dry=False, log=print, ask=lambda kind, question: False):
-    """Publica el episodio `name` en los destinos `ids`. Devuelve una lista de Result."""
+def publish(cfg, name, ids, *, dry=False, force=False, log=print, ask=lambda kind, question: False):
+    """Publica el episodio `name` en los destinos `ids`; `force` repite los ya publicados. Devuelve Results."""
     ep = Workspace(cfg).episode(name)
     if not ep.processed:
         raise SpiralError(_("«{name}» no está procesado: procésalo antes de publicar.", name=name))
@@ -66,7 +66,7 @@ def publish(cfg, name, ids, *, dry=False, log=print, ask=lambda kind, question: 
     for did in sorted(ids, key=lambda i: (i != site.ID, i)):
         d = dests[did]
         info = state["destinations"].get(did, {})
-        if info.get("done"):
+        if info.get("done") and not force:
             results.append(Result(did, "skipped", _("ya estaba publicado")))
             say(_("- {id}: ya estaba publicado, se omite", id=did))
             continue

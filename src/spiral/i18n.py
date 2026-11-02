@@ -108,6 +108,8 @@ EN = {
     'Episodio': 'Episode',
     'SITE_URL={url} es la dirección del repositorio; debe ser la de GitHub Pages (https://<usuario>.github.io/<repo>).': 'SITE_URL={url} is the repository address; it must be the GitHub Pages one (https://<user>.github.io/<repo>).',
     'PODCAST_IMAGE={image}: no existe ese fichero.': 'PODCAST_IMAGE={image}: that file does not exist.',
+    'volver a publicar en los destinos ya publicados': 're-publish to destinations that are already published',
+    'Ya publicado en: {ids}. Volver a publicar repite los posts y vídeos en las redes (en site solo regenera el feed). ¿Volver a publicar? (no = se omiten)': 'Already published to: {ids}. Publishing again repeats the posts and videos on the networks (on site it only regenerates the feed). Publish again? (no = skip them)',
     'Estado': 'State',
     'Duración': 'Duration',
     'Publicados (de los procesados)': 'Published (of the processed)',

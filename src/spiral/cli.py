@@ -33,6 +33,7 @@ def parser():
     p.add_argument("names", nargs="*", metavar="name")
     p.add_argument("--to", help=_("destinos separados por comas, p. ej. site,bluesky/programa"))
     p.add_argument("--dry-run", action="store_true", help=_("muestra el contenido sin publicar nada"))
+    p.add_argument("--force", action="store_true", help=_("volver a publicar en los destinos ya publicados"))
     p.add_argument("--yes", action="store_true", help=_("no preguntar"))
     p = sub.add_parser("view", help=_("informe HTML de todos los ficheros"))
     p.add_argument("--no-open", action="store_true", help=_("solo generarlo"))
@@ -105,6 +106,12 @@ def cmd_publish(cfg, args):
     if not ids:
         return
     dry = args.dry_run
+    force = args.force
+    again = [i for i in ids if any(i in ep.done_destinations for ep in eps)]
+    if again and tty and not (force or dry or args.yes):
+        force = ui.confirm(_("Ya publicado en: {ids}. Volver a publicar repite los posts y vídeos en las redes "
+                             "(en site solo regenera el feed). ¿Volver a publicar? (no = se omiten)",
+                             ids=", ".join(again)))
     if tty and not (args.yes or dry):
         mode = ui.pick_mode()
         if mode in (None, "cancel"):
@@ -120,7 +127,7 @@ def cmd_publish(cfg, args):
     for name in names:
         if len(names) > 1:
             ui.title(name)
-        results = publish_episode(cfg, name, ids, dry=dry, log=ui.info, ask=ask)
+        results = publish_episode(cfg, name, ids, dry=dry, force=force, log=ui.info, ask=ask)
         ui.show_results(results)
         if any(r.status in ("failed", "not-attempted") for r in results):
             code = 1
@@ -148,7 +155,7 @@ def menu(cfg):
             return 0
         try:
             COMMANDS[action](cfg, argparse.Namespace(names=[], redo=False, to=None, dry_run=False,
-                                                     yes=False, no_open=False))
+                                                     force=False, yes=False, no_open=False))
         except SpiralError as e:
             ui.error(str(e))
 

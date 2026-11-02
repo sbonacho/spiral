@@ -93,3 +93,13 @@ def test_publish_several_checks_all_are_processed_before_publishing(work, capsys
     (work / "b.mov").write_bytes(b"x")
     code, out = run(work, ["publish", "a", "b", "--to", "site", "--yes"], capsys)
     assert code == 1 and "«b» no está procesado" in out and published == []
+
+
+def test_publish_force_flag_reaches_the_publisher(work, capsys, monkeypatch):
+    seen = []
+    monkeypatch.setattr(cli, "publish_episode", lambda *a, **k: seen.append(k["force"]) or [])
+    (work / "processed" / "a").mkdir(parents=True)
+    (work / "processed" / "a" / "done.json").write_text("{}")
+    run(work, ["publish", "a", "--to", "site", "--yes"], capsys)
+    run(work, ["publish", "a", "--to", "site", "--yes", "--force"], capsys)
+    assert seen == [False, True]

@@ -226,3 +226,17 @@ def test_feed_has_managing_editor_and_owner_email(work):
     site.build_feed(work / "site", pod_of(work).podcast())
     feed = (work / "site" / "feed.xml").read_text()
     assert "<managingEditor>a@e.com (a)</managingEditor>" in feed and "<itunes:email>a@e.com</itunes:email>" in feed
+
+
+def test_force_republishes_what_is_already_done(work, monkeypatch):
+    d = episode(work)
+    (d / "episodio.mp3").write_bytes(b"mp3")
+    (d / "transcripcion.txt").write_text("x")
+    uploads = []
+    monkeypatch.setattr(site, "upload_archive", lambda *a, **k: uploads.append(1))
+    monkeypatch.setattr(site, "duration", lambda p: 1)
+    cfg = make_cfg(work, **SITE_ENV)
+    assert destinations.publish(cfg, "a", ["site"], log=lambda m: None)[0].status == "ok"
+    assert destinations.publish(cfg, "a", ["site"], log=lambda m: None)[0].status == "skipped"
+    assert destinations.publish(cfg, "a", ["site"], force=True, log=lambda m: None)[0].status == "ok"
+    assert len(uploads) == 2

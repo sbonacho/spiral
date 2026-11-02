@@ -87,3 +87,14 @@ El destino `site` SHALL subir el mp3 a Archive.org, generar la entrada de blog y
 #### Scenario: site/ no es un repositorio
 - **WHEN** `site/` no es un repositorio git
 - **THEN** el sistema genera los ficheros, no hace push e indica cómo publicarlos
+
+### Requirement: Volver a publicar
+`spiral publish --force` SHALL volver a ejecutar los destinos que ya constan como publicados. En el menú, si entre los destinos elegidos hay alguno ya publicado, el sistema SHALL preguntar (por defecto no) si volver a publicar, avisando de que en las redes se repiten los posts y vídeos; sin confirmación SHALL omitirlos. Con `--yes` sin `--force` los ya publicados SHALL omitirse sin preguntar.
+
+#### Scenario: Forzar con la bandera
+- **WHEN** `site` consta como publicado y se ejecuta `spiral publish a --to site --force`
+- **THEN** `site` se ejecuta de nuevo y su estado queda como publicado
+
+#### Scenario: Sin forzar
+- **WHEN** `site` consta como publicado y se ejecuta `spiral publish a --to site --yes`
+- **THEN** `site` se omite
