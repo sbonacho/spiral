@@ -103,3 +103,8 @@ def test_publish_force_flag_reaches_the_publisher(work, capsys, monkeypatch):
     run(work, ["publish", "a", "--to", "site", "--yes"], capsys)
     run(work, ["publish", "a", "--to", "site", "--yes", "--force"], capsys)
     assert seen == [False, True]
+
+
+def test_unpublish_needs_names_and_destinations_without_terminal(work, capsys):
+    assert run(work, ["unpublish"], capsys)[0] == 2
+    assert run(work, ["unpublish", "a"], capsys)[0] == 2

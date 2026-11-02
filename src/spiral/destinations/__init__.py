@@ -30,22 +30,8 @@ def discover(cfg):
     return out
 
 
-def publish(cfg, name, ids, *, dry=False, force=False, log=print, ask=lambda kind, question: False):
-    """Publica el episodio `name` en los destinos `ids`; `force` repite los ya publicados. Devuelve Results."""
-    ep = Workspace(cfg).episode(name)
-    if not ep.processed:
-        raise SpiralError(_("«{name}» no está procesado: procésalo antes de publicar.", name=name))
-    dests = {d.id: d for d in discover(cfg)}
-    if unknown := [i for i in ids if i not in dests]:
-        raise SpiralError(_("Destino(s) desconocido(s): {unknown}. Disponibles: {available}", unknown=", ".join(unknown),
-                          available=", ".join(dests) or _("ninguno")))
-    if bad := [_("{id} (falta {missing})", id=i, missing=", ".join(dests[i].missing)) for i in ids if dests[i].missing]:
-        raise SpiralError(_("No configurados: {list}", list="; ".join(bad)))
-
-    content = json.loads((ep.dir / "contenido.json").read_text())
-    url = site.episode_url(cfg, content) if cfg.get("SITE_URL") else None
-    secrets = set(cfg.secrets())
-    state = read_state(ep.published)
+def _tools(cfg, ep, log, secrets):
+    """`say` (log sin secretos) y `journal` (publish.log) de un episodio."""
     logfile = ep.published / "publish.log"
 
     def redact(text):
@@ -61,6 +47,31 @@ def publish(cfg, name, ids, *, dry=False, force=False, log=print, ask=lambda kin
         logfile.parent.mkdir(parents=True, exist_ok=True)
         with logfile.open("a") as f:
             f.write(redact(line).replace("\n", " ") + "\n")
+    say.redact = redact
+    return say, journal
+
+
+def _check_ids(ids, dests):
+    if unknown := [i for i in ids if i not in dests]:
+        raise SpiralError(_("Destino(s) desconocido(s): {unknown}. Disponibles: {available}", unknown=", ".join(unknown),
+                          available=", ".join(dests) or _("ninguno")))
+
+
+def publish(cfg, name, ids, *, dry=False, force=False, log=print, ask=lambda kind, question: False):
+    """Publica el episodio `name` en los destinos `ids`; `force` repite los ya publicados. Devuelve Results."""
+    ep = Workspace(cfg).episode(name)
+    if not ep.processed:
+        raise SpiralError(_("«{name}» no está procesado: procésalo antes de publicar.", name=name))
+    dests = {d.id: d for d in discover(cfg)}
+    _check_ids(ids, dests)
+    if bad := [_("{id} (falta {missing})", id=i, missing=", ".join(dests[i].missing)) for i in ids if dests[i].missing]:
+        raise SpiralError(_("No configurados: {list}", list="; ".join(bad)))
+
+    content = json.loads((ep.dir / "contenido.json").read_text())
+    url = site.episode_url(cfg, content) if cfg.get("SITE_URL") else None
+    secrets = set(cfg.secrets())
+    state = read_state(ep.published)
+    say, journal = _tools(cfg, ep, log, secrets)
 
     results, site_failed = [], False
     for did in sorted(ids, key=lambda i: (i != site.ID, i)):
@@ -102,9 +113,58 @@ def publish(cfg, name, ids, *, dry=False, force=False, log=print, ask=lambda kin
         except KeyboardInterrupt:
             raise
         except Exception as e:
-            detail = redact(str(e))
+            detail = say.redact(str(e))
             journal(did, "failed", detail)
             results.append(Result(did, "failed", detail))
             say(_("- {id}: ERROR {detail}", id=did, detail=detail))
             site_failed = site_failed or d.is_site
+    return results
+
+
+def unpublish(cfg, name, ids, *, dry=False, log=print, ask=lambda kind, question: False):
+    """Retira el episodio `name` de los destinos `ids`: borra lo que se puede y, si no, pide confirmar el borrado a mano."""
+    ep = Workspace(cfg).episode(name)
+    dests = {d.id: d for d in discover(cfg)}
+    _check_ids(ids, dests)
+    content = json.loads((ep.dir / "contenido.json").read_text()) if ep.processed else {}
+    secrets = set(cfg.secrets())
+    state = read_state(ep.published)
+    say, journal = _tools(cfg, ep, log, secrets)
+    results = []
+    for did in sorted(ids, key=lambda i: (i == site.ID, i)):          # el sitio, el último
+        d, info = dests[did], state["destinations"].get(did, {})
+        if not info.get("done"):
+            results.append(Result(did, "skipped", _("no estaba publicado")))
+            continue
+        handler = site if d.is_site else d.network
+        remover = getattr(handler, "unpublish", None)
+        ctx = Context(cfg=cfg, ep=ep, content=content, key=d.key, account=d.account, url=None, log=say, ask=ask,
+                      secrets=secrets)
+        try:
+            if remover is None:
+                say(_("- {id}: no se puede borrar desde spiral; hazlo a mano en {label}.", id=did, label=d.label))
+                if dry:
+                    results.append(Result(did, "simulated", _("a mano")))
+                    continue
+                if not ask("forget", _("¿Ya lo has borrado a mano en {id}? Se anotará como no publicado", id=did)):
+                    results.append(Result(did, "manual", _("sin confirmar")))
+                    continue
+            elif dry:
+                say(_("- {id}: se borraría la publicación", id=did))
+                results.append(Result(did, "simulated"))
+                continue
+            else:
+                say(f"- {did}…")
+                remover(ctx, info.get("ref"))
+            del state["destinations"][did]
+            write_state(ep.published, state)
+            journal(did, "unpublished")
+            results.append(Result(did, "removed"))
+        except KeyboardInterrupt:
+            raise
+        except Exception as e:
+            detail = say.redact(str(e))
+            journal(did, "unpublish-failed", detail)
+            results.append(Result(did, "failed", detail))
+            say(_("- {id}: ERROR {detail}", id=did, detail=detail))
     return results

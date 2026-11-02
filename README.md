@@ -46,6 +46,7 @@ The menu shows which destinations are configured and which are not (and what eac
 | `spiral list` | Files in the directory with their state: pending, processed, published (and where). |
 | `spiral process [name...] [--redo]` | Process one or more files. Tick them in a list (space ticks, Ctrl-A all, type to filter). |
 | `spiral publish [name...] [--to a,b] [--dry-run] [--force] [--yes]` | Tick one or more processed episodes and the destinations (space ticks, `a` all; only configured ones can be ticked), then publish or simulate. Already-published destinations are skipped; `--force` (or answering yes in the menu) publishes them again. |
+| `spiral unpublish [name...] [--from a,b] [--dry-run] [--yes]` | Remove publications you made by mistake. Deletes the post on Bluesky and Mastodon and takes the episode out of the site and feed; YouTube, Instagram, X and TikTok must be deleted by hand (spiral then asks to forget them). The mp3 stays on Archive.org. Always asks first. |
 | `spiral view [--no-open]` | HTML report of every file, its state and where it is published. |
 | `spiral --version` | Version. |
 

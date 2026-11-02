@@ -1,4 +1,4 @@
-"""Punto de entrada `spiral`: menú guiado y subcomandos list, process, publish y view."""
+"""Punto de entrada `spiral`: menú guiado y subcomandos list, process, publish, unpublish y view."""
 import argparse
 import subprocess
 import sys
@@ -7,6 +7,7 @@ from . import __version__, report, ui
 from .config import Config, init_workspace
 from .destinations import discover
 from .destinations import publish as publish_episode
+from .destinations import unpublish as unpublish_episode
 from .errors import SpiralError
 from .i18n import _, set_language
 from .pipeline import process_episode
@@ -34,6 +35,11 @@ def parser():
     p.add_argument("--to", help=_("destinos separados por comas, p. ej. site,bluesky/programa"))
     p.add_argument("--dry-run", action="store_true", help=_("muestra el contenido sin publicar nada"))
     p.add_argument("--force", action="store_true", help=_("volver a publicar en los destinos ya publicados"))
+    p.add_argument("--yes", action="store_true", help=_("no preguntar"))
+    p = sub.add_parser("unpublish", help=_("retirar publicaciones de uno o varios episodios"))
+    p.add_argument("names", nargs="*", metavar="name")
+    p.add_argument("--from", dest="source", help=_("destinos de los que retirar, separados por comas"))
+    p.add_argument("--dry-run", action="store_true", help=_("muestra qué se retiraría sin tocar nada"))
     p.add_argument("--yes", action="store_true", help=_("no preguntar"))
     p = sub.add_parser("view", help=_("informe HTML de todos los ficheros"))
     p.add_argument("--no-open", action="store_true", help=_("solo generarlo"))
@@ -134,6 +140,48 @@ def cmd_publish(cfg, args):
     return code
 
 
+def cmd_unpublish(cfg, args):
+    ws = Workspace(cfg)
+    names = args.names
+    tty = interactive()
+    if not names:
+        if not tty:
+            raise UsageError(_("Falta el nombre: spiral unpublish <nombre>... --from <destino>[,...]"))
+        names = ui.pick_episodes(ws.episodes(), _("¿De qué episodios retiras publicaciones?"),
+                                 lambda ep: None if ep.done_destinations else _("sin publicar"))
+    if not names:
+        return
+    eps = [ws.episode(n) for n in names]
+    dests = discover(cfg)
+    if args.source:
+        ids = [i.strip() for i in args.source.split(",") if i.strip()]
+    elif tty:
+        ids = ui.pick_published(dests, {i for ep in eps for i in ep.done_destinations})
+    else:
+        raise UsageError(_("Falta --from <destino>[,...]"))
+    if not ids:
+        return
+    if tty and not (args.yes or args.dry_run) and not ui.confirm(
+            _("Se retirarán {names} de {ids}. En las redes no se puede deshacer. ¿Continuar?",
+              names=", ".join(names), ids=", ".join(ids))):
+        return
+
+    def ask(kind, question):
+        if kind in ("manual", "forget"):      # nunca se da por hecho un borrado a mano
+            return tty and ui.confirm(question)
+        return True if args.yes else (tty and ui.confirm(question, default=True))
+
+    code = 0
+    for name in names:
+        if len(names) > 1:
+            ui.title(name)
+        results = unpublish_episode(cfg, name, ids, dry=args.dry_run, log=ui.info, ask=ask)
+        ui.show_results(results)
+        if any(r.status == "failed" for r in results):
+            code = 1
+    return code
+
+
 def cmd_view(cfg, args):
     path, n = report.write(cfg)
     ui.info(_("{n} episodio(s) -> {path}", n=n, path=path))
@@ -141,12 +189,13 @@ def cmd_view(cfg, args):
         ui.info(_("No pude abrirlo; ábrelo en el navegador."))
 
 
-COMMANDS = {"list": cmd_list, "process": cmd_process, "publish": cmd_publish, "view": cmd_view}
+COMMANDS = {"list": cmd_list, "process": cmd_process, "publish": cmd_publish, "unpublish": cmd_unpublish,
+            "view": cmd_view}
 
 
 def menu(cfg):
     if not interactive():
-        raise UsageError(_("Sin terminal: usa un subcomando (list, process, publish, view). spiral --help"))
+        raise UsageError(_("Sin terminal: usa un subcomando (list, process, publish, unpublish, view). spiral --help"))
     ui.title("spiral")
     ui.show_destinations(discover(cfg))
     while True:
@@ -155,7 +204,7 @@ def menu(cfg):
             return 0
         try:
             COMMANDS[action](cfg, argparse.Namespace(names=[], redo=False, to=None, dry_run=False,
-                                                     force=False, yes=False, no_open=False))
+                                                     force=False, source=None, yes=False, no_open=False))
         except SpiralError as e:
             ui.error(str(e))
 

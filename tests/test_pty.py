@@ -69,7 +69,7 @@ def test_arrows_filter_space_disabled_and_dry_run(session, tmp_path):
     c.expect(r"\[bluesky/programa\] Resumen corto")
     c.expect("Resultado")
     c.expect("Qué quieres hacer")
-    c.send(DOWN * 4 + ENTER)                          # salir
+    c.send(DOWN * 5 + ENTER)                          # salir
     c.expect(pexpect.EOF)
     c.close()
     assert c.exitstatus == 0
@@ -83,7 +83,7 @@ def test_ctrl_c_in_a_selector_cancels_without_changes(session, tmp_path):
     c.expect("Qué episodios publicas")
     c.send("\x03")                                    # Ctrl-C en el selector
     c.expect("Qué quieres hacer")                     # vuelve al menú
-    c.send(DOWN * 4 + ENTER)
+    c.send(DOWN * 5 + ENTER)
     c.expect(pexpect.EOF)
     c.close()
     assert c.exitstatus == 0 and not (tmp_path / "work" / "published").exists()
@@ -97,7 +97,7 @@ def test_publish_with_nothing_configured_explains_instead_of_crashing(bare_sessi
     c.send(SPACE + ENTER)                             # marca el procesado
     c.expect("Ningún destino configurado")            # mensaje claro, no un Traceback
     c.expect("Qué quieres hacer")                     # y vuelve al menú
-    c.send(DOWN * 4 + ENTER)
+    c.send(DOWN * 5 + ENTER)
     c.expect(pexpect.EOF)
     c.close()
     assert c.exitstatus == 0
@@ -111,7 +111,7 @@ def test_offers_to_create_the_env_when_there_are_movs_and_no_env(tmp_path, isola
         c.send(ENTER)                                 # sí (por defecto)
         c.expect("Creado")                            # la plantilla trae PODCAST_LANGUAGE=en: ya en inglés
         c.expect("What do you want to do")
-        c.send(DOWN * 4 + ENTER)
+        c.send(DOWN * 5 + ENTER)
         c.expect(pexpect.EOF)
         c.close()
         env = tmp_path / "work" / ".env"
@@ -127,7 +127,7 @@ def test_declining_the_offer_creates_nothing(tmp_path, isolated_home):
         c.expect("crear un repositorio spiral")
         c.send("n")
         c.expect("Qué quieres hacer")
-        c.send(DOWN * 4 + ENTER)
+        c.send(DOWN * 5 + ENTER)
         c.expect(pexpect.EOF)
         c.close()
         assert c.exitstatus == 0 and not (tmp_path / "work" / ".env").exists()
@@ -159,7 +159,7 @@ def test_select_all_marks_every_selectable_episode(tmp_path, isolated_home):
         c.expect("otra")                              # (rich parte las cifras con códigos de color)
         c.expect("Resultado")
         c.expect("Qué quieres hacer")
-        c.send(DOWN * 4 + ENTER)
+        c.send(DOWN * 5 + ENTER)
         c.expect(pexpect.EOF)
     finally:
         c.close(force=True)

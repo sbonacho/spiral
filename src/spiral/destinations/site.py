@@ -157,6 +157,28 @@ def git_publish(site_dir, message):
     subprocess.run([*git, "push"], check=True)
 
 
+def unpublish(ctx, ref):
+    """Quita el episodio del feed y del blog (los .json de episodes/ y el post) y sube el cambio."""
+    cfg = ctx.cfg
+    identifier = ref["audio"].split("/download/")[1].split("/")[0]
+    site_dir, meta_file = cfg.site_dir, cfg.site_dir / "episodes" / f"{identifier}.json"
+    if meta_file.is_file():
+        meta = json.loads(meta_file.read_text())
+        post = site_dir / "_posts" / f"{datetime.fromisoformat(meta['fecha']):%Y-%m-%d}-{meta['slug']}.md"
+        post.unlink(missing_ok=True)
+        meta_file.unlink()
+    pod = cfg.podcast()
+    pod["image"] = cover_url(cfg, pod)
+    build_feed(site_dir, pod)
+    if not is_own_repo(site_dir):
+        ctx.log(_("  site/ no es un repositorio git: sube su contenido tú (ver el README)."))
+    elif ctx.ask("push", _("¿Subir site/ a GitHub para que el feed deje de incluirlo?")):
+        git_publish(site_dir, f"Remove episode: {identifier}")
+    else:
+        ctx.log(_("  site/ preparado, sin subir."))
+    ctx.log(_("  El mp3 sigue en Archive.org ({url}): bórralo allí si quieres.", url=ref["audio"]))
+
+
 def preview(ctx):
     mp3 = ctx.ep.dir / "episodio.mp3"
     return _("[site] subir {mp3} a Archive.org, crear la entrada «{title}» y regenerar feed.xml",

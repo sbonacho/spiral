@@ -240,3 +240,60 @@ def test_force_republishes_what_is_already_done(work, monkeypatch):
     assert destinations.publish(cfg, "a", ["site"], log=lambda m: None)[0].status == "skipped"
     assert destinations.publish(cfg, "a", ["site"], force=True, log=lambda m: None)[0].status == "ok"
     assert len(uploads) == 2
+
+
+def published_site(work, monkeypatch):
+    d = episode(work)
+    (d / "episodio.mp3").write_bytes(b"mp3")
+    (d / "transcripcion.txt").write_text("x")
+    monkeypatch.setattr(site, "upload_archive", lambda *a, **k: None)
+    monkeypatch.setattr(site, "duration", lambda p: 1)
+    cfg = make_cfg(work, **SITE_ENV)
+    assert destinations.publish(cfg, "a", ["site"], log=lambda m: None)[0].status == "ok"
+    return cfg
+
+
+def test_unpublish_site_removes_post_entry_and_feed_item(work, monkeypatch):
+    cfg = published_site(work, monkeypatch)
+    s = work / "site"
+    assert list((s / "_posts").glob("*.md")) and "<item>" in (s / "feed.xml").read_text()
+    res = destinations.unpublish(cfg, "a", ["site"], log=lambda m: None)
+    assert res[0].status == "removed"
+    assert not list((s / "_posts").glob("*.md")) and not list((s / "episodes").glob("*.json"))
+    assert "<item>" not in (s / "feed.xml").read_text()
+    assert not destinations.Workspace(cfg).episode("a").done_destinations      # se puede volver a publicar
+    assert destinations.publish(cfg, "a", ["site"], log=lambda m: None)[0].status == "ok"
+
+
+def test_unpublish_dry_run_and_not_published_touch_nothing(work, monkeypatch):
+    cfg = published_site(work, monkeypatch)
+    assert destinations.unpublish(cfg, "a", ["site"], dry=True, log=lambda m: None)[0].status == "simulated"
+    assert list((work / "site" / "_posts").glob("*.md")) and destinations.Workspace(cfg).episode("a").done_destinations
+    destinations.unpublish(cfg, "a", ["site"], log=lambda m: None)
+    assert destinations.unpublish(cfg, "a", ["site"], log=lambda m: None)[0].status == "skipped"
+
+
+def test_unpublish_network_deletes_through_its_handler(work, monkeypatch):
+    from dataclasses import replace
+    from spiral.destinations import bluesky
+    from spiral.workspace import write_state
+    episode(work)
+    cfg = make_cfg(work, **SITE_ENV, BLUESKY_ACCOUNTS="p", BLUESKY_P_HANDLE="h", BLUESKY_P_APP_PASSWORD="s3cret")
+    write_state(work / "published" / "a", {"destinations": {"bluesky/p": {"done": True, "ref": "at://x/1"}}})
+    deleted = []
+    fake = replace(bluesky.NETWORK, unpublish=lambda ctx, ref: deleted.append(ref))
+    monkeypatch.setattr(destinations, "NETWORKS", tuple(fake if n.key == "bluesky" else n for n in destinations.NETWORKS))
+    res = destinations.unpublish(cfg, "a", ["bluesky/p"], log=lambda m: None)
+    assert res[0].status == "removed" and deleted == ["at://x/1"]
+    assert read_state(work / "published" / "a")["destinations"] == {}
+
+
+def test_unpublish_manual_network_needs_confirmation_to_forget(work):
+    from spiral.workspace import write_state
+    episode(work)
+    cfg = make_cfg(work, **SITE_ENV, X_ACCOUNTS="p")
+    write_state(work / "published" / "a", {"destinations": {"x/p": {"done": True, "ref": {"manual": True}}}})
+    assert destinations.unpublish(cfg, "a", ["x/p"], log=lambda m: None)[0].status == "manual"
+    assert read_state(work / "published" / "a")["destinations"]["x/p"]["done"]
+    res = destinations.unpublish(cfg, "a", ["x/p"], log=lambda m: None, ask=lambda k, q: k == "forget")
+    assert res[0].status == "removed" and read_state(work / "published" / "a")["destinations"] == {}

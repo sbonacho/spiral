@@ -98,3 +98,14 @@ El destino `site` SHALL subir el mp3 a Archive.org, generar la entrada de blog y
 #### Scenario: Sin forzar
 - **WHEN** `site` consta como publicado y se ejecuta `spiral publish a --to site --yes`
 - **THEN** `site` se omite
+
+### Requirement: Retirar publicaciones
+`spiral unpublish <nombre>... --from <destino>[,...] [--dry-run] [--yes]` SHALL retirar los episodios de los destinos indicados. Bluesky y Mastodon SHALL borrar el post; `site` SHALL quitar la entrada, el post del blog y el elemento del feed, y subir el cambio si se confirma; el mp3 de Archive.org SHALL NOT borrarse. Los destinos sin borrado automático (YouTube, Instagram, X, TikTok) SHALL indicar que se borre a mano y solo pasar a no publicados si el usuario lo confirma. Un destino pasa a no publicado únicamente si el borrado tuvo éxito, y SHALL poder volver a publicarse. Sin `--yes` ni `--dry-run`, el sistema SHALL pedir confirmación antes de borrar (por defecto no); `--dry-run` MUST NOT modificar nada.
+
+#### Scenario: Retirar del sitio
+- **WHEN** `site` consta como publicado y se ejecuta `spiral unpublish a --from site --yes`
+- **THEN** el feed deja de incluir el episodio, su entrada y su post desaparecen y `site` queda como no publicado
+
+#### Scenario: Destino manual sin confirmar
+- **WHEN** se retira de `x/programa` y el usuario no confirma que lo ha borrado
+- **THEN** `x/programa` sigue constando como publicado

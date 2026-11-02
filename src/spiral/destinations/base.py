@@ -21,6 +21,7 @@ class Network:
     check: Callable | None = None   # (cfg, account) -> lista de cosas que faltan, además de `required`
     manual: bool = False
     needs_url: bool = True          # enlaza al post del blog, así que necesita SITE_URL
+    unpublish: Callable | None = None   # (ctx, ref) -> None; sin él, la publicación se borra a mano
 
     def missing(self, cfg, account):
         out = [f"{self.key.upper()}_{account.upper()}_{f}" for f in self.required

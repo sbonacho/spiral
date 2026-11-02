@@ -59,7 +59,8 @@ def pick_action():
     return questionary.select(
         _("¿Qué quieres hacer?"), use_arrow_keys=True, use_jk_keys=False,
         choices=[entry("list", _("ficheros y su estado")), entry("process", _("procesar uno o varios ficheros")),
-                 entry("publish", _("publicar uno o varios episodios procesados")), entry("view", _("informe HTML")),
+                 entry("publish", _("publicar uno o varios episodios procesados")),
+                 entry("unpublish", _("retirar publicaciones")), entry("view", _("informe HTML")),
                  questionary.Choice(_("salir"), "quit")]).ask()
 
 
@@ -87,6 +88,18 @@ def pick_destinations(dests, done):
                                instruction=_("(espacio marca, a todos, Enter confirma)")).ask()
 
 
+def pick_published(dests, published):
+    """Casillas con los destinos en los que consta algún episodio; sin credenciales no se puede borrar."""
+    choices = [questionary.Choice(
+        d.label, d.id, disabled=None if d.configured else f"{_('falta')}: {', '.join(d.missing)}")
+        for d in dests if d.id in published]
+    if not any(c.disabled is None for c in choices):   # questionary falla si todas están deshabilitadas
+        info(_("No hay ningún destino del que se pueda retirar."))
+        return []
+    return questionary.checkbox(_("¿De dónde retirar?"), choices=choices,
+                                instruction=_("(espacio marca, a todos, Enter confirma)")).ask() or []
+
+
 def pick_mode():
     return questionary.select(_("¿Cómo?"), use_jk_keys=False, choices=[
         questionary.Choice(_("Publicar de verdad"), "publish"),
@@ -100,7 +113,7 @@ def confirm(question, default=False):
 
 def show_results(results):
     colors = {"ok": "green", "skipped": "dim", "simulated": "cyan", "pending": "yellow",
-              "failed": "red", "not-attempted": "yellow"}
+              "failed": "red", "not-attempted": "yellow", "removed": "green", "manual": "yellow"}
     console.print(f"\n[bold]{_('Resultado')}[/]")
     for r in results:
         console.print(f"  [{colors[r.status]}]{r.status:<13}[/] {escape(r.id)}  [dim]{escape(r.detail)}[/]",

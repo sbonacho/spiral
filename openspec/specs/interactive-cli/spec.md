@@ -6,7 +6,7 @@ Definir la experiencia de uso del comando `spiral`: selectores con flechas y esp
 ## Requirements
 
 ### Requirement: Panel inicial de redes y acciones
-Al ejecutarse sin argumentos, el sistema SHALL mostrar el estado de cada destino configurable (configurado o no, y qué le falta) y SHALL ofrecer las acciones `list`, `process`, `publish` y `view`. El estado MUST NOT transmitirse solo mediante el color: SHALL usar también símbolos o texto.
+Al ejecutarse sin argumentos, el sistema SHALL mostrar el estado de cada destino configurable (configurado o no, y qué le falta) y SHALL ofrecer las acciones `list`, `process`, `publish`, `unpublish` y `view`. El estado MUST NOT transmitirse solo mediante el color: SHALL usar también símbolos o texto.
 
 #### Scenario: Panel con redes sin configurar
 - **WHEN** el usuario ejecuta `spiral` y `youtube/canal` no tiene credenciales
