@@ -121,7 +121,7 @@ La cuota diaria de la API (10.000 unidades) da para varias subidas al día; el c
 
 ### Mastodon
 
-*Preferencias → Desarrollo → Nueva aplicación*, permiso `write:statuses`, y copia el token de acceso. Usa `MASTODON_<CUENTA>_URL` (tu instancia) y `MASTODON_<CUENTA>_TOKEN`.
+*Preferencias → Desarrollo → Nueva aplicación*, permiso `write:statuses`, y copia el token de acceso. Usa `MASTODON_<CUENTA>_URL` (tu instancia, p. ej. `https://mastodon.social`; si pones la URL de un perfil se reduce a la instancia) y `MASTODON_<CUENTA>_TOKEN`.
 
 ### Instagram Reels
 

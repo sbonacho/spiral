@@ -297,3 +297,10 @@ def test_unpublish_manual_network_needs_confirmation_to_forget(work):
     assert read_state(work / "published" / "a")["destinations"]["x/p"]["done"]
     res = destinations.unpublish(cfg, "a", ["x/p"], log=lambda m: None, ask=lambda k, q: k == "forget")
     assert res[0].status == "removed" and read_state(work / "published" / "a")["destinations"] == {}
+
+
+def test_mastodon_url_is_reduced_to_the_instance_root():
+    from spiral.destinations.mastodon import instance
+    assert instance("https://mastodon.social/@lacalleespiral") == "https://mastodon.social"
+    assert instance("mastodon.social/") == "https://mastodon.social"
+    assert instance("https://mstdn.example:8443") == "https://mstdn.example:8443"

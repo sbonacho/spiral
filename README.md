@@ -121,7 +121,7 @@ The daily API quota (10,000 units) is enough for several uploads a day; the exac
 
 ### Mastodon
 
-*Preferences → Development → New application*, scope `write:statuses`, copy the access token. Use `MASTODON_<ACCOUNT>_URL` (your instance) and `MASTODON_<ACCOUNT>_TOKEN`.
+*Preferences → Development → New application*, scope `write:statuses`, copy the access token. Use `MASTODON_<ACCOUNT>_URL` (your instance, e.g. `https://mastodon.social`; a profile URL is reduced to the instance) and `MASTODON_<ACCOUNT>_TOKEN`.
 
 ### Instagram Reels
 

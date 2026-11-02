@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from ..errors import SpiralError
 from ..i18n import _
 from .base import Network, short_text
@@ -7,11 +9,17 @@ def preview(ctx):
     return f"[mastodon/{ctx.account}] {short_text(ctx.content)}\n\n{ctx.url}"
 
 
+def instance(url):
+    """La API cuelga de la raíz de la instancia: https://mastodon.social/@usuario pasa a https://mastodon.social."""
+    parts = urlparse(url if "//" in url else f"https://{url}")
+    return f"{parts.scheme}://{parts.netloc}"
+
+
 def login(ctx):
     from mastodon import Mastodon
     token = ctx.field("TOKEN")
     ctx.secrets.add(token)
-    return Mastodon(access_token=token, api_base_url=ctx.field("URL"))
+    return Mastodon(access_token=token, api_base_url=instance(ctx.field("URL")))
 
 
 def publish(ctx):
