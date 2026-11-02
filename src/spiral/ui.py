@@ -31,7 +31,7 @@ def title(msg):
 def show_destinations(dests):
     console.print(f"\n[bold]{_('Destinos')}[/]")
     if not dests:
-        console.print(f"  [dim]{_('ninguno configurado (ver .env.example)')}[/]")
+        console.print(f"  [dim]{_('ninguno configurado (ver el README)')}[/]")
     for d in dests:
         if d.configured:
             console.print(f"  [green]✔[/] {escape(d.id)}  [dim]{escape(d.label)}[/]", highlight=False)

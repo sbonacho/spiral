@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 from . import __version__, report, ui
-from .config import Config
+from .config import Config, init_workspace
 from .destinations import discover
 from .destinations import publish as publish_episode
 from .errors import SpiralError
@@ -90,7 +90,7 @@ def cmd_publish(cfg, args):
     elif tty:
         if not any(d.configured for d in dests):   # questionary falla si todas las casillas están deshabilitadas
             ui.show_destinations(dests)
-            raise SpiralError(_("Ningún destino configurado: rellena el .env (mira .env.example y el README)."))
+            raise SpiralError(_("Ningún destino configurado: rellena el .env (mira el README)."))
         ids = ui.pick_destinations(dests, set(ep.done_destinations))
     else:
         raise UsageError(_("Falta --to <destino>[,...]"))
@@ -139,13 +139,26 @@ def menu(cfg):
             ui.error(str(e))
 
 
+def offer_workspace(cfg):
+    """Con .mov y sin .env aquí, ofrece crear el .env; devuelve la configuración al día."""
+    if (cfg.root / ".env").exists() or not any(cfg.root.glob("*.mov")) or not interactive():
+        return cfg
+    if not ui.confirm(_("Hay .mov aquí pero no hay .env: ¿crear un repositorio spiral en este directorio "
+                        "(copia la plantilla a .env) para publicarlos?"), default=True):
+        return cfg
+    ui.info(_("Creado {path}: rellénalo antes de publicar.", path=init_workspace(cfg.root)))
+    cfg = Config.load(cfg.root)
+    set_language(cfg.language)
+    return cfg
+
+
 def main(argv=None):
     try:
         cfg = Config.load()
         set_language(cfg.language)
         args = parser().parse_args(argv)
         if args.cmd is None:
-            return menu(cfg) or 0
+            return menu(offer_workspace(cfg)) or 0
         return COMMANDS[args.cmd](cfg, args) or 0
     except UsageError as e:
         print(f"spiral: {e}", file=sys.stderr)

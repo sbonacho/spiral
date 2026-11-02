@@ -4,6 +4,7 @@ Las capas se combinan variable a variable; un valor vacío cuenta como no defini
 """
 import os
 import re
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -113,3 +114,13 @@ class Config:
 
     def secrets(self):
         return [v for k, v in self.values.items() if _SECRET_NAME.search(k) and len(v) >= 6]
+
+
+def init_workspace(root):
+    """Crea el .env del directorio copiando la plantilla del paquete (no pisa uno existente)."""
+    target = Path(root) / ".env"
+    if target.exists():
+        return None
+    shutil.copyfile(Path(__file__).with_name("env.example"), target)
+    target.chmod(0o600)
+    return target

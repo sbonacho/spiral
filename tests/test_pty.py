@@ -16,12 +16,14 @@ CONFIGURED = {"SITE_URL": "https://e.github.io/p", "PODCAST_TITLE": "T", "PODCAS
               "MASTODON_ACCOUNTS": "canal"}
 
 
-def spawn(tmp_path, home, config):
+def spawn(tmp_path, home, config, local_env=True):
     """Lanza `spiral` en un pseudo-terminal con un episodio procesado y otro pendiente."""
     work = tmp_path / "work"
     ep = work / "processed" / "2026-11-01_charla"
     ep.mkdir(parents=True)
     (work / "pendiente.mov").write_bytes(b"x")
+    if local_env:                                     # con .env local no se ofrece crear el repositorio
+        (work / ".env").write_text("")
     (ep / "contenido.json").write_text(json.dumps({
         "titulo": "Charla de prueba", "resumen_corto": "Resumen corto", "resumen_largo": "l",
         "capitulos": [{"inicio": 0, "titulo": "a"}], "tags": ["radio"], "hilo_x": ["t"],
@@ -99,3 +101,34 @@ def test_publish_with_nothing_configured_explains_instead_of_crashing(bare_sessi
     c.close()
     assert c.exitstatus == 0
     assert "Traceback" not in c.before
+
+
+def test_offers_to_create_the_env_when_there_are_movs_and_no_env(tmp_path, isolated_home):
+    c = spawn(tmp_path, isolated_home, {}, local_env=False)
+    try:
+        c.expect("crear un repositorio spiral")
+        c.send(ENTER)                                 # sí (por defecto)
+        c.expect("Creado")                            # la plantilla trae PODCAST_LANGUAGE=en: ya en inglés
+        c.expect("What do you want to do")
+        c.send(DOWN * 4 + ENTER)
+        c.expect(pexpect.EOF)
+        c.close()
+        env = tmp_path / "work" / ".env"
+        assert c.exitstatus == 0 and "PODCAST_TITLE=" in env.read_text()
+        assert oct(env.stat().st_mode & 0o777) == "0o600"
+    finally:
+        c.close(force=True)
+
+
+def test_declining_the_offer_creates_nothing(tmp_path, isolated_home):
+    c = spawn(tmp_path, isolated_home, {}, local_env=False)
+    try:
+        c.expect("crear un repositorio spiral")
+        c.send("n")
+        c.expect("Qué quieres hacer")
+        c.send(DOWN * 4 + ENTER)
+        c.expect(pexpect.EOF)
+        c.close()
+        assert c.exitstatus == 0 and not (tmp_path / "work" / ".env").exists()
+    finally:
+        c.close(force=True)

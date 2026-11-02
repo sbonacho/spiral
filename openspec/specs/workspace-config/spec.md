@@ -42,6 +42,17 @@ El sistema SHALL poder listar y procesar episodios sin ningún fichero `.env`. L
 - **WHEN** no existe ningún `.env` y el usuario ejecuta `spiral list`
 - **THEN** el sistema lista los episodios sin error
 
+### Requirement: Oferta de crear el .env
+Al ejecutar `spiral` sin subcomando en una terminal, en un directorio con algún `.mov` y sin `.env` local, el sistema SHALL preguntar si crear un repositorio spiral. Si se acepta, SHALL copiar la plantilla `env.example` del paquete a `.env` (permisos 0600) y continuar con la configuración recargada; si se rechaza, no SHALL crear nada. Nunca SHALL sobrescribir un `.env` existente.
+
+#### Scenario: Se acepta
+- **WHEN** hay `.mov`, no hay `.env` y el usuario responde sí
+- **THEN** existe `.env` con la plantilla y el menú continúa
+
+#### Scenario: Se rechaza
+- **WHEN** hay `.mov`, no hay `.env` y el usuario responde no
+- **THEN** no se crea ningún fichero
+
 ### Requirement: Carpetas de resultados configurables dentro del directorio
 El sistema SHALL guardar los episodios procesados en la carpeta indicada por `PROCESSED_DIR` (por defecto `processed`) y el estado de publicación en la indicada por `PUBLISHED_DIR` (por defecto `published`), ambas relativas al directorio de trabajo. El sistema MUST rechazar rutas absolutas o que salgan del directorio de trabajo mediante `..`.
 

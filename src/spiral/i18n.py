@@ -134,7 +134,9 @@ EN = {
     '¿Dónde publicar? (espacio marca, Enter confirma)': 'Where to publish? (space ticks, Enter confirms)',
     '¿Cómo?': 'How?',
     'Resultado': 'Result',
-    'ninguno configurado (ver .env.example)': 'none configured (see .env.example)',
+    'Hay .mov aquí pero no hay .env: ¿crear un repositorio spiral en este directorio (copia la plantilla a .env) para publicarlos?': 'There are .mov files here but no .env: create a spiral repository in this directory (copies the template to .env) to publish them?',
+    'Creado {path}: rellénalo antes de publicar.': 'Created {path}: fill it in before publishing.',
+    'ninguno configurado (ver el README)': 'none configured (see the README)',
     'No hay .mov ni episodios en este directorio.': 'There are no .mov files or episodes in this directory.',
     '(escribe para buscar)': '(type to search)',
     'falta': 'missing',
@@ -154,6 +156,6 @@ EN = {
     'Instagram (Reels)': 'Instagram (Reels)',
     'X (enlaces; publicas tú)': 'X (links; you post)',
     'TikTok (subida a mano)': 'TikTok (manual upload)',
-    'Ningún destino configurado: rellena el .env (mira .env.example y el README).': 'No destination is configured: fill in the .env (see .env.example and the README).',
+    'Ningún destino configurado: rellena el .env (mira el README).': 'No destination is configured: fill in the .env (see the README).',
     'No hay ningún episodio que se pueda elegir para esta acción.': 'There is no episode that can be chosen for this action.',
 }

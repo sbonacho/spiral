@@ -35,7 +35,7 @@ Everything is free to run except what you choose to pay for (an LLM API, if you 
 
 ```bash
 cd ~/Movies/my-show
-curl -o .env https://raw.githubusercontent.com/sbonacho/spiral/main/.env.example   # then edit it
+curl -o .env https://raw.githubusercontent.com/sbonacho/spiral/main/src/spiral/env.example   # then edit it
 spiral
 ```
 
@@ -92,7 +92,7 @@ Tokens that spiral generates (YouTube authorization, the renewed Instagram token
 
 ## Setting up each destination
 
-Do the one-time setup, then fill `.env` (see [`.env.example`](.env.example) for every variable).
+Do the one-time setup, then fill `.env` (see [`env.example`](src/spiral/env.example) for every variable).
 
 ### Audio, blog and RSS (`site`)
 

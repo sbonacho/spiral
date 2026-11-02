@@ -35,7 +35,7 @@ Todo es gratis salvo lo que tú decidas pagar (una API de LLM, si eliges una).
 
 ```bash
 cd ~/Movies/mi-programa
-curl -o .env https://raw.githubusercontent.com/sbonacho/spiral/main/.env.example   # y edítalo
+curl -o .env https://raw.githubusercontent.com/sbonacho/spiral/main/src/spiral/env.example   # y edítalo
 spiral
 ```
 
@@ -92,7 +92,7 @@ Los tokens que genera spiral (autorización de YouTube, token renovado de Instag
 
 ## Configurar cada destino
 
-Haz la configuración una sola vez y rellena `.env` (todas las variables están en [`.env.example`](.env.example)).
+Haz la configuración una sola vez y rellena `.env` (todas las variables están en [`env.example`](src/spiral/env.example)).
 
 ### Audio, blog y RSS (`site`)
 
