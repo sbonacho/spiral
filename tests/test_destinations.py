@@ -184,3 +184,45 @@ def test_site_without_git_repo_does_not_push(work, monkeypatch):
     logs = []
     destinations.publish(make_cfg(work, **SITE_ENV), "a", ["site"], log=logs.append, ask=lambda k, q: True)
     assert not pushed and any("no es un repositorio git" in m for m in logs)
+
+
+def pod_of(work, **extra):
+    return make_cfg(work, **SITE_ENV | extra)
+
+
+def test_site_url_must_be_the_pages_address_not_the_repo(work):
+    from spiral.errors import SpiralError
+    for bad in ("https://github.com/u/r.git", "https://github.com/u/r"):
+        with pytest.raises(SpiralError, match="GitHub Pages"):
+            pod_of(work, SITE_URL=bad).podcast()
+
+
+def test_cover_from_a_file_inside_site_gets_the_pages_url(work):
+    (work / "site" / "img").mkdir(parents=True)
+    (work / "site" / "img" / "logo.jpeg").write_bytes(b"x")
+    cfg = pod_of(work, PODCAST_IMAGE="site/img/logo.jpeg")
+    assert site.cover_url(cfg, cfg.podcast()) == "https://e.github.io/p/img/logo.jpeg"
+
+
+def test_cover_from_a_file_outside_site_is_copied_into_it(work):
+    (work / "logo.PNG").write_bytes(b"x")
+    cfg = pod_of(work, PODCAST_IMAGE="logo.PNG")
+    assert site.cover_url(cfg, cfg.podcast()) == "https://e.github.io/p/cover.png"
+    assert (work / "site" / "cover.png").read_bytes() == b"x"
+
+
+def test_cover_url_is_kept_and_a_missing_file_is_an_error(work):
+    from spiral.errors import SpiralError
+    cfg = pod_of(work, PODCAST_IMAGE="https://x.org/c.jpg")
+    assert site.cover_url(cfg, cfg.podcast()) == "https://x.org/c.jpg"
+    cfg = pod_of(work, PODCAST_IMAGE="nada.jpg")
+    with pytest.raises(SpiralError, match="no existe"):
+        site.cover_url(cfg, cfg.podcast())
+
+
+def test_feed_has_managing_editor_and_owner_email(work):
+    (work / "site").mkdir()
+    (work / "site" / "episodes").mkdir()
+    site.build_feed(work / "site", pod_of(work).podcast())
+    feed = (work / "site" / "feed.xml").read_text()
+    assert "<managingEditor>a@e.com (a)</managingEditor>" in feed and "<itunes:email>a@e.com</itunes:email>" in feed

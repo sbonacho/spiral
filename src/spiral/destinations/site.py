@@ -2,10 +2,12 @@
 import json
 import os
 import re
+import shutil
 import subprocess
 import unicodedata
 from datetime import datetime, timezone
 from email.utils import format_datetime
+from pathlib import Path
 from xml.sax.saxutils import escape
 
 from ..errors import SpiralError
@@ -90,6 +92,23 @@ def ensure_scaffold(site_dir, pod):
             (site_dir / name).write_text(text)
 
 
+def cover_url(cfg, pod):
+    """PODCAST_IMAGE puede ser una URL o un fichero local; un fichero se sirve desde site/ (se copia si hace falta)."""
+    image = pod["image"]
+    if not image or image.startswith(("http://", "https://")):
+        return image
+    src = Path(image).expanduser()
+    src = src if src.is_absolute() else cfg.root / src
+    if not src.is_file():
+        raise SpiralError(_("PODCAST_IMAGE={image}: no existe ese fichero.", image=image))
+    cfg.site_dir.mkdir(parents=True, exist_ok=True)
+    site_dir = cfg.site_dir.resolve()
+    if site_dir not in src.resolve().parents:
+        shutil.copyfile(src, site_dir / f"cover{src.suffix.lower()}")
+        src = site_dir / f"cover{src.suffix.lower()}"
+    return f"{pod['site_url']}/{src.resolve().relative_to(site_dir).as_posix()}"
+
+
 def build_feed(site_dir, pod):
     items = []
     for f in sorted((site_dir / "episodes").glob("*.json"), reverse=True):
@@ -113,6 +132,7 @@ def build_feed(site_dir, pod):
     <language>{pod['language']}</language>
     <description>{escape(pod['description'])}</description>
     <itunes:author>{escape(pod['author'])}</itunes:author>
+    <managingEditor>{escape(pod['email'])} ({escape(pod['author'])})</managingEditor>
     <itunes:owner><itunes:name>{escape(pod['author'])}</itunes:name><itunes:email>{escape(pod['email'])}</itunes:email></itunes:owner>
     <itunes:category text="{escape(pod['category'])}"/>
     <itunes:explicit>false</itunes:explicit>{image}
@@ -146,6 +166,7 @@ def preview(ctx):
 def publish(ctx):
     cfg, ep, content = ctx.cfg, ctx.ep, ctx.content
     pod = cfg.podcast()
+    pod["image"] = cover_url(cfg, pod)          # antes de subir nada: si falla, no queda a medias
     mp3 = ep.dir / "episodio.mp3"
     fecha = episode_date(ep.name, mp3.stat().st_mtime)
     slug = slugify(content["titulo"])

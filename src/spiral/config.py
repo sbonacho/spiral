@@ -89,10 +89,14 @@ class Config:
         """Metadatos del programa; falla si falta alguno obligatorio."""
         if missing := self.missing_podcast():
             raise SpiralError(_("Faltan en el .env: {missing}", missing=", ".join(missing)))
+        site_url = self.get("SITE_URL").rstrip("/")
+        if site_url.endswith(".git") or "//github.com/" in site_url:
+            raise SpiralError(_("SITE_URL={url} es la dirección del repositorio; debe ser la de GitHub Pages "
+                                "(https://<usuario>.github.io/<repo>).", url=site_url))
         return {"title": self.get("PODCAST_TITLE"), "description": self.get("PODCAST_DESCRIPTION"),
                 "author": self.get("PODCAST_AUTHOR"), "email": self.get("PODCAST_EMAIL"),
                 "language": self.language, "category": self.get("PODCAST_CATEGORY"),
-                "image": self.get("PODCAST_IMAGE", ""), "site_url": self.get("SITE_URL").rstrip("/")}
+                "image": self.get("PODCAST_IMAGE", ""), "site_url": site_url}
 
     def accounts(self, network):
         names = [a.strip().lower() for a in self.get(f"{network.upper()}_ACCOUNTS", "").split(",") if a.strip()]

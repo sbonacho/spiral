@@ -106,6 +106,8 @@ EN = {
     'publicado': 'published',
     'Informe de episodios': 'Episodes report',
     'Episodio': 'Episode',
+    'SITE_URL={url} es la dirección del repositorio; debe ser la de GitHub Pages (https://<usuario>.github.io/<repo>).': 'SITE_URL={url} is the repository address; it must be the GitHub Pages one (https://<user>.github.io/<repo>).',
+    'PODCAST_IMAGE={image}: no existe ese fichero.': 'PODCAST_IMAGE={image}: that file does not exist.',
     'Estado': 'State',
     'Duración': 'Duration',
     'Publicados (de los procesados)': 'Published (of the processed)',
