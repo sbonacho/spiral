@@ -1,4 +1,5 @@
 """YouTube: episodio completo y Shorts (siempre en privado hasta que publiques en Studio)."""
+import json
 from pathlib import Path
 
 from ..config import global_dir
@@ -15,7 +16,16 @@ def secret_path(cfg, account):
 
 
 def check(cfg, account):
-    return [] if secret_path(cfg, account).is_file() else [f"client_secret.json ({secret_path(cfg, account)})"]
+    path = secret_path(cfg, account)
+    if not path.is_file():
+        return [f"client_secret.json ({path})"]
+    try:
+        kind = next(iter(json.loads(path.read_text())), "")
+    except (OSError, ValueError):
+        kind = ""
+    if kind != "installed":      # un cliente «Aplicación web» hace que Google responda redirect_uri_mismatch
+        return [_("{path} debe ser un ID de cliente de tipo «Aplicación de escritorio»", path=path)]
+    return []
 
 
 def mmss(s):

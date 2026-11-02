@@ -304,3 +304,13 @@ def test_mastodon_url_is_reduced_to_the_instance_root():
     assert instance("https://mastodon.social/@lacalleespiral") == "https://mastodon.social"
     assert instance("mastodon.social/") == "https://mastodon.social"
     assert instance("https://mstdn.example:8443") == "https://mstdn.example:8443"
+
+
+def test_youtube_rejects_a_web_oauth_client(work):
+    from spiral.destinations import youtube
+    secret = work / "cs.json"
+    cfg = make_cfg(work, YOUTUBE_ACCOUNTS="c", YOUTUBE_C_CLIENT_SECRET=str(secret))
+    secret.write_text(json.dumps({"web": {"client_id": "x"}}))
+    assert "Aplicación de escritorio" in youtube.check(cfg, "c")[0]
+    secret.write_text(json.dumps({"installed": {"client_id": "x"}}))
+    assert youtube.check(cfg, "c") == []

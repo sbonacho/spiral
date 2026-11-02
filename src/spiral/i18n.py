@@ -129,6 +129,7 @@ EN = {
     '¿Ya lo has borrado a mano en {id}? Se anotará como no publicado': 'Have you already deleted it by hand in {id}? It will be recorded as not published',
     '- {id}: se borraría la publicación': '- {id}: the publication would be deleted',
     'sin publicar': 'not published',
+    '{path} debe ser un ID de cliente de tipo «Aplicación de escritorio»': '{path} must be an OAuth client ID of type “Desktop app”',
     'Estado': 'State',
     'Duración': 'Duration',
     'Publicados (de los procesados)': 'Published (of the processed)',
