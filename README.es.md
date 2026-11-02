@@ -44,8 +44,8 @@ El menú muestra qué destinos están configurados y cuáles no (y qué le falta
 | Comando | Qué hace |
 |---|---|
 | `spiral list` | Ficheros del directorio con su estado: pendiente, procesado, publicado (y dónde). |
-| `spiral process [nombre] [--redo]` | Procesa un fichero. Se elige en una lista que filtra al escribir. |
-| `spiral publish [nombre] [--to a,b] [--dry-run] [--yes]` | Eliges un episodio procesado, marcas los destinos con la barra espaciadora (solo los configurados) y publicas o simulas. |
+| `spiral process [nombre...] [--redo]` | Procesa uno o varios ficheros. Se marcan en una lista (espacio marca, Ctrl-A todos, escribe para filtrar). |
+| `spiral publish [nombre...] [--to a,b] [--dry-run] [--yes]` | Marcas uno o varios episodios procesados y los destinos (espacio marca, `a` todos; solo los configurados) y publicas o simulas. |
 | `spiral view [--no-open]` | Informe HTML de todos los ficheros, su estado y dónde están publicados. |
 | `spiral --version` | Versión. |
 

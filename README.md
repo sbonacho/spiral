@@ -44,8 +44,8 @@ The menu shows which destinations are configured and which are not (and what eac
 | Command | What it does |
 |---|---|
 | `spiral list` | Files in the directory with their state: pending, processed, published (and where). |
-| `spiral process [name] [--redo]` | Process one file. Pick it from a list that filters as you type. |
-| `spiral publish [name] [--to a,b] [--dry-run] [--yes]` | Pick a processed episode, tick the destinations (only configured ones can be ticked, with the space bar), then publish or simulate. |
+| `spiral process [name...] [--redo]` | Process one or more files. Tick them in a list (space ticks, Ctrl-A all, type to filter). |
+| `spiral publish [name...] [--to a,b] [--dry-run] [--yes]` | Tick one or more processed episodes and the destinations (space ticks, `a` all; only configured ones can be ticked), then publish or simulate. |
 | `spiral view [--no-open]` | HTML report of every file, its state and where it is published. |
 | `spiral --version` | Version. |
 

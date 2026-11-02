@@ -68,3 +68,28 @@ def test_publish_pending_fails_with_hint(work, capsys):
     (work / "a.mov").write_bytes(b"x")
     code, out = run(work, ["publish", "a", "--to", "site", "--yes"], capsys)
     assert code == 1 and "no está procesado" in out
+
+
+def test_process_several_continues_after_a_failure(work, capsys, monkeypatch):
+    from spiral.errors import SpiralError
+    calls = []
+
+    def fake(cfg, name, log, redo):
+        calls.append(name)
+        if name == "b":
+            raise SpiralError("ffmpeg falló")
+    monkeypatch.setattr(cli, "process_episode", fake)
+    for n in "abc":
+        (work / f"{n}.mov").write_bytes(b"x")
+    code, out = run(work, ["process", "a", "b", "c"], capsys)
+    assert code == 1 and calls == ["a", "b", "c"] and "b: ffmpeg falló" in out and "2 de 3" in out
+
+
+def test_publish_several_checks_all_are_processed_before_publishing(work, capsys, monkeypatch):
+    published = []
+    monkeypatch.setattr(cli, "publish_episode", lambda *a, **k: published.append(a[1]) or [])
+    (work / "processed" / "a").mkdir(parents=True)
+    (work / "processed" / "a" / "done.json").write_text("{}")
+    (work / "b.mov").write_bytes(b"x")
+    code, out = run(work, ["publish", "a", "b", "--to", "site", "--yes"], capsys)
+    assert code == 1 and "«b» no está procesado" in out and published == []

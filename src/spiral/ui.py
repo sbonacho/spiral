@@ -57,13 +57,13 @@ def pick_action():
         return questionary.Choice(f"{key:<8} {text}", key)
     return questionary.select(
         _("¿Qué quieres hacer?"), use_arrow_keys=True, use_jk_keys=False,
-        choices=[entry("list", _("ficheros y su estado")), entry("process", _("procesar un fichero")),
-                 entry("publish", _("publicar un episodio procesado")), entry("view", _("informe HTML")),
+        choices=[entry("list", _("ficheros y su estado")), entry("process", _("procesar uno o varios ficheros")),
+                 entry("publish", _("publicar uno o varios episodios procesados")), entry("view", _("informe HTML")),
                  questionary.Choice(_("salir"), "quit")]).ask()
 
 
-def pick_episode(episodes, message, usable):
-    """`usable(ep)` devuelve None si se puede elegir o el motivo si no. Se filtra al escribir."""
+def pick_episodes(episodes, message, usable):
+    """Casillas con espacio (Ctrl-A marca todos); `usable(ep)` da None si se puede elegir o el motivo si no."""
     choices = []
     for ep in episodes:
         icon, _color, label = STAGE[ep.stage]
@@ -71,9 +71,10 @@ def pick_episode(episodes, message, usable):
         choices.append(questionary.Choice(title, ep.name, disabled=usable(ep)))
     if not any(c.disabled is None for c in choices):   # questionary falla si todas están deshabilitadas
         info(_("No hay ningún episodio que se pueda elegir para esta acción."))
-        return None
-    return questionary.select(message + " " + _("(escribe para buscar)"), choices=choices, use_search_filter=True,
-                              use_jk_keys=False, use_arrow_keys=True).ask()
+        return []
+    return questionary.checkbox(
+        message, choices=choices, use_search_filter=True, use_jk_keys=False, use_arrow_keys=True,
+        instruction=_("(espacio marca, Ctrl-A todos, escribe para buscar, Enter confirma)")).ask() or []
 
 
 def pick_destinations(dests, done):
@@ -81,7 +82,8 @@ def pick_destinations(dests, done):
     choices = [questionary.Choice(
         d.label + ("  " + _("(ya publicado)") if d.id in done else ""), d.id,
         disabled=None if d.configured else f"{_('falta')}: {', '.join(d.missing)}") for d in dests]
-    return questionary.checkbox(_("¿Dónde publicar? (espacio marca, Enter confirma)"), choices=choices).ask()
+    return questionary.checkbox(_("¿Dónde publicar?"), choices=choices,
+                               instruction=_("(espacio marca, a todos, Enter confirma)")).ask()
 
 
 def pick_mode():

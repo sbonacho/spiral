@@ -1,6 +1,7 @@
 """Prueba de humo de los selectores interactivos en un pseudo-terminal."""
 import json
 import sys
+import time
 
 import pytest
 
@@ -55,10 +56,10 @@ def test_arrows_filter_space_disabled_and_dry_run(session, tmp_path):
     c.expect("falta: MASTODON_CANAL_URL")             # panel: destino sin configurar con su motivo
     c.expect("Qué quieres hacer")
     c.send(DOWN * 2 + ENTER)                          # flechas: publish
-    c.expect("Qué episodio publicas")
+    c.expect("Qué episodios publicas")
     c.expect("pendiente")                             # el pendiente aparece pero deshabilitado
     c.send("char")                                    # filtra al escribir
-    c.send(ENTER)
+    c.send(SPACE + ENTER)                             # espacio marca el episodio, Enter confirma
     c.expect("Dónde publicar")
     c.expect("falta: MASTODON_CANAL_URL")             # casilla deshabilitada con motivo
     c.send(SPACE + DOWN + SPACE + ENTER)              # espacio marca site y bluesky
@@ -79,7 +80,7 @@ def test_ctrl_c_in_a_selector_cancels_without_changes(session, tmp_path):
     c = session
     c.expect("Qué quieres hacer")
     c.send(DOWN * 2 + ENTER)
-    c.expect("Qué episodio publicas")
+    c.expect("Qué episodios publicas")
     c.send("\x03")                                    # Ctrl-C en el selector
     c.expect("Qué quieres hacer")                     # vuelve al menú
     c.send(DOWN * 4 + ENTER)
@@ -92,8 +93,8 @@ def test_publish_with_nothing_configured_explains_instead_of_crashing(bare_sessi
     c = bare_session
     c.expect("Qué quieres hacer")
     c.send(DOWN * 2 + ENTER)                          # publish
-    c.expect("Qué episodio publicas")
-    c.send(ENTER)                                     # el procesado
+    c.expect("Qué episodios publicas")
+    c.send(SPACE + ENTER)                             # marca el procesado
     c.expect("Ningún destino configurado")            # mensaje claro, no un Traceback
     c.expect("Qué quieres hacer")                     # y vuelve al menú
     c.send(DOWN * 4 + ENTER)
@@ -130,5 +131,35 @@ def test_declining_the_offer_creates_nothing(tmp_path, isolated_home):
         c.expect(pexpect.EOF)
         c.close()
         assert c.exitstatus == 0 and not (tmp_path / "work" / ".env").exists()
+    finally:
+        c.close(force=True)
+
+
+def test_select_all_marks_every_selectable_episode(tmp_path, isolated_home):
+    c = spawn(tmp_path, isolated_home, CONFIGURED)
+    second = tmp_path / "work" / "processed" / "2026-11-02_otra"
+    second.mkdir(parents=True)
+    (second / "contenido.json").write_text((tmp_path / "work" / "processed" / "2026-11-01_charla"
+                                            / "contenido.json").read_text())
+    (second / "done.json").write_text("{}")
+    try:
+        c.expect("Qué quieres hacer")
+        c.send(DOWN * 2 + ENTER)                      # publish
+        c.expect("Qué episodios publicas")
+        time.sleep(0.5)                               # que el selector esté leyendo teclas
+        c.send("\x01")                                # Ctrl-A: todos los elegibles (el pendiente no)
+        time.sleep(0.5)
+        c.send(ENTER)
+        c.expect("Dónde publicar")
+        c.send(SPACE + ENTER)                         # site
+        c.expect("Cómo")
+        time.sleep(0.5)
+        c.send(DOWN + ENTER)                          # Simular
+        c.expect("Resultado")                         # un bloque por episodio marcado
+        c.expect("otra")                              # (rich parte las cifras con códigos de color)
+        c.expect("Resultado")
+        c.expect("Qué quieres hacer")
+        c.send(DOWN * 4 + ENTER)
+        c.expect(pexpect.EOF)
     finally:
         c.close(force=True)

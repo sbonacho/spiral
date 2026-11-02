@@ -27,11 +27,28 @@ El selector de episodios SHALL mostrar todos los ficheros con su estado y SHALL 
 - **THEN** la lista se reduce a las coincidencias y se elige con flechas y Enter
 
 ### Requirement: Selección múltiple con espacio
-El selector de destinos SHALL permitir marcar y desmarcar varias opciones con la barra espaciadora y confirmar con Enter. Las opciones no disponibles SHALL mostrarse deshabilitadas, con el motivo, y no ser marcables.
+Los selectores de episodios (`process`, `publish`) y de destinos SHALL permitir marcar y desmarcar varias opciones con la barra espaciadora y confirmar con Enter. Las opciones no disponibles SHALL mostrarse deshabilitadas, con el motivo, y no ser marcables.
+
+Los selectores SHALL ofrecer una tecla para marcar o desmarcar todas las opciones disponibles (Ctrl-A en el de episodios, que además filtra al escribir; `a` en el de destinos).
+
+#### Scenario: Marcar todos los episodios
+- **WHEN** el usuario pulsa Ctrl-A en el selector de episodios y Enter
+- **THEN** quedan marcados todos los episodios elegibles y ninguno de los no elegibles
 
 #### Scenario: Marcar varios destinos
 - **WHEN** el usuario pulsa espacio sobre `bluesky/programa` y `mastodon/programa` y Enter
 - **THEN** se publica solo en esos dos destinos
+
+### Requirement: Varios episodios en una acción
+`process` y `publish` SHALL aceptar varios episodios. `process` SHALL continuar con los demás si uno falla, mostrar cuántos se procesaron y terminar con código 1 si alguno falló; `--redo` y su confirmación SHALL aplicarse a todos los ya procesados. `publish` SHALL comprobar antes de publicar que todos están procesados, pedir destinos y modo una sola vez, y publicar cada episodio con su propio resultado; las confirmaciones manuales (x, tiktok) SHALL pedirse por cada episodio.
+
+#### Scenario: Un fallo no detiene el resto
+- **WHEN** se procesan a, b y c y b falla
+- **THEN** a y c se procesan, se informa del fallo de b y el código de salida es 1
+
+#### Scenario: Un episodio sin procesar bloquea todo
+- **WHEN** se publica a y b y b no está procesado
+- **THEN** no se publica ninguno y se explica cómo procesar b
 
 ### Requirement: Cancelación segura
 Pulsar Ctrl-C durante una selección SHALL cancelar la acción sin modificar ficheros y volver al menú, o terminar con código 130 si se ejecutó una acción directa.
@@ -41,7 +58,7 @@ Pulsar Ctrl-C durante una selección SHALL cancelar la acción sin modificar fic
 - **THEN** no se publica nada y no se modifica ningún fichero
 
 ### Requirement: Uso no interactivo
-Cada acción SHALL poder ejecutarse con argumentos explícitos: `spiral process <nombre>`, `spiral publish <nombre> --to <red/cuenta>[,...] [--dry-run] [--yes]`, `spiral list` y `spiral view`. Si la entrada no es un terminal y faltan argumentos, el sistema MUST terminar con un error de uso y código 2 sin esperar entrada. `spiral --version` SHALL mostrar la versión.
+Cada acción SHALL poder ejecutarse con argumentos explícitos: `spiral process <nombre>...`, `spiral publish <nombre>... --to <red/cuenta>[,...] [--dry-run] [--yes]`, `spiral list` y `spiral view`. Si la entrada no es un terminal y faltan argumentos, el sistema MUST terminar con un error de uso y código 2 sin esperar entrada. `spiral --version` SHALL mostrar la versión.
 
 #### Scenario: Publicar sin terminal
 - **WHEN** se ejecuta `spiral publish a --to bluesky/programa --yes` sin terminal
