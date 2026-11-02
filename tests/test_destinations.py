@@ -314,3 +314,39 @@ def test_youtube_rejects_a_web_oauth_client(work):
     assert "Aplicación de escritorio" in youtube.check(cfg, "c")[0]
     secret.write_text(json.dumps({"installed": {"client_id": "x"}}))
     assert youtube.check(cfg, "c") == []
+
+
+def test_youtube_asks_again_when_the_stored_authorization_has_expired(work, monkeypatch):
+    from google.auth.exceptions import RefreshError
+    from google.oauth2.credentials import Credentials
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    import googleapiclient.discovery
+    from spiral.destinations import base, youtube
+
+    class Expired:
+        valid, refresh_token = False, "r"
+
+        def refresh(self, request):
+            raise RefreshError("invalid_grant")
+
+    class Fresh:
+        valid = True
+
+        def to_json(self):
+            return "{}"
+
+    class Flow:
+        def run_local_server(self, port):
+            return Fresh()
+
+    token = base.token_path("youtube", "c")
+    token.parent.mkdir(parents=True)
+    token.write_text("{}")
+    monkeypatch.setattr(Credentials, "from_authorized_user_file", classmethod(lambda cls, *a: Expired()))
+    monkeypatch.setattr(InstalledAppFlow, "from_client_secrets_file", classmethod(lambda cls, *a: Flow()))
+    monkeypatch.setattr(googleapiclient.discovery, "build", lambda *a, **k: "yt")
+    logs = []
+    ctx = base.Context(cfg=make_cfg(work, YOUTUBE_ACCOUNTS="c"), ep=None, content={}, key="youtube", account="c",
+                       url=None, log=logs.append, ask=lambda k, q: True)
+    assert youtube.service(ctx) == "yt"
+    assert any("caducado" in m for m in logs)

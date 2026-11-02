@@ -130,6 +130,7 @@ EN = {
     '- {id}: se borraría la publicación': '- {id}: the publication would be deleted',
     'sin publicar': 'not published',
     '{path} debe ser un ID de cliente de tipo «Aplicación de escritorio»': '{path} must be an OAuth client ID of type “Desktop app”',
+    '  la autorización de YouTube ha caducado; hay que autorizar de nuevo.': '  the YouTube authorization has expired; authorizing again.',
     'Estado': 'State',
     'Duración': 'Duration',
     'Publicados (de los procesados)': 'Published (of the processed)',

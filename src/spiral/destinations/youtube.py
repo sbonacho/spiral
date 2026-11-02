@@ -44,6 +44,7 @@ def description(content, url):
 
 
 def service(ctx):
+    from google.auth.exceptions import RefreshError
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
@@ -53,8 +54,12 @@ def service(ctx):
     creds = Credentials.from_authorized_user_file(str(path), SCOPE) if path.is_file() else None
     if not creds or not creds.valid:
         if creds and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+            try:
+                creds.refresh(Request())
+            except RefreshError:       # en modo «Testing» de Google la autorización caduca a los 7 días
+                ctx.log(_("  la autorización de YouTube ha caducado; hay que autorizar de nuevo."))
+                creds = None
+        if not creds or not creds.valid:
             ctx.log(_("  se abre el navegador para autorizar YouTube…"))
             creds = InstalledAppFlow.from_client_secrets_file(
                 str(secret_path(ctx.cfg, ctx.account)), SCOPE).run_local_server(port=0)
