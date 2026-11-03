@@ -474,3 +474,20 @@ def test_index_is_the_episode_list_and_a_custom_index_is_left_alone(work, monkey
     (work / "site" / "index.md").write_text("mi portada")
     showcase.refresh(cfg, logs.append, lambda k, q: False)
     assert (work / "site" / "index.md").read_text() == "mi portada" and any("index.md es tuyo" in m for m in logs)
+
+
+def test_listen_platforms_appear_next_to_rss_and_bad_urls_are_ignored(work, monkeypatch):
+    from spiral.destinations import showcase
+    cfg = showcase_cfg(work, monkeypatch, PODCAST_LISTEN_SPOTIFY="https://open.spotify.com/show/x",
+                       PODCAST_LISTEN_IVOOX="https://www.ivoox.com/p", PODCAST_LISTEN_APPLE="podcasts.apple.com/x")
+    logs = []
+    destinations.publish(cfg, "a", ["site"], log=logs.append)
+    index = (work / "site" / "index.md").read_text()
+    header = index.split("<article")[0]
+    assert "https://open.spotify.com/show/x" in header and "https://www.ivoox.com/p" in header
+    assert header.index("feed.xml") < header.index("spotify") < header.index("ivoox")
+    assert "podcasts.apple.com" not in index and any("PODCAST_LISTEN_APPLE" in m for m in logs)
+    assert (work / "site" / "img" / "redes" / "spotify.svg").is_file()
+    (work / "site" / "img" / "redes" / "ivoox.svg").write_text("<svg>mío</svg>")
+    showcase.refresh(cfg, lambda m: None, lambda k, q: False)
+    assert (work / "site" / "img" / "redes" / "ivoox.svg").read_text() == "<svg>mío</svg>"

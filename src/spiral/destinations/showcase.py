@@ -14,7 +14,13 @@ ORDER = ("youtube", "bluesky", "mastodon", "instagram", "x", "tiktok")
 LABELS = {"youtube": "YouTube", "bluesky": "Bluesky", "mastodon": "Mastodon", "instagram": "Instagram",
           "x": "X", "tiktok": "TikTok", "rss": "RSS"}
 COLORS = {"youtube": "#FF0000", "bluesky": "#1185FE", "mastodon": "#6364FF", "instagram": "#FF0069",
-          "x": "#000000", "tiktok": "#000000", "rss": "#FFA500"}
+          "x": "#000000", "tiktok": "#000000", "rss": "#FFA500", "spotify": "#1ED760",
+          "applepodcasts": "#9933CC", "ivoox": "#F0762C", "amazonmusic": "#25D1DA", "youtubemusic": "#FF0000",
+          "pocketcasts": "#F43E37"}
+# Dónde está el RSS dado de alta: PODCAST_LISTEN_<CLAVE>=<url del programa en esa plataforma>
+LISTEN = (("SPOTIFY", "spotify", "Spotify"), ("APPLE", "applepodcasts", "Apple Podcasts"),
+          ("IVOOX", "ivoox", "iVoox"), ("AMAZON", "amazonmusic", "Amazon Music"),
+          ("YOUTUBEMUSIC", "youtubemusic", "YouTube Music"), ("POCKETCASTS", "pocketcasts", "Pocket Casts"))
 START, END = "<!-- spiral:donde -->", "<!-- /spiral:donde -->"
 INDEX_MARK = "<!-- spiral:index -->"
 DEFAULT_INDEX = "---\nlayout: home\n---"       # el que crea site.ensure_scaffold
@@ -95,7 +101,21 @@ def logo_style(pod):
     return LOGO_STYLE.replace("{url}", "../" + image[len(base):] if image.startswith(base) else image)
 
 
-def write_index(site_dir, pod, cards, log):
+def listen_badges(cfg, log):
+    """Insignias de las plataformas donde está dado de alta el RSS, en el orden de LISTEN."""
+    out = []
+    for suffix, key, label in LISTEN:
+        url = cfg.get(f"PODCAST_LISTEN_{suffix}")
+        if not url:
+            continue
+        if not url.startswith("https://"):
+            log(_("  PODCAST_LISTEN_{name} no es una URL https: se ignora.", name=suffix))
+            continue
+        out.append(badge(key, label, url))
+    return out
+
+
+def write_index(cfg, site_dir, pod, cards, log):
     """La portada es el listado de episodios con sus insignias; solo se reescribe si es la de spiral."""
     old = site_dir / "publicaciones.md"          # página de una versión anterior: ahora el listado es la portada
     if old.is_file() and "permalink: /publicaciones.html" in old.read_text():
@@ -113,7 +133,7 @@ def write_index(site_dir, pod, cards, log):
         for m, items in cards)
     index.write_text(f"---\nlayout: default\n---\n{INDEX_MARK}\n"
                      f'<p class="sp-lead">{html.escape(pod["description"])}</p>\n'
-                     f'<div class="sp-donde">{rss}</div>\n\n{body}\n')
+                     f'<div class="sp-donde">{rss}{"".join(listen_badges(cfg, log))}</div>\n\n{body}\n')
 
 
 def refresh(cfg, log, ask):
@@ -139,7 +159,7 @@ def refresh(cfg, log, ask):
             post.write_text(set_block(post.read_text(), donde(items)))
         cards.append((meta, items))
     cards.sort(key=lambda c: c[0]["fecha"], reverse=True)
-    write_index(site_dir, pod, cards, log)
+    write_index(cfg, site_dir, pod, cards, log)
     (site_dir / "_sass").mkdir(exist_ok=True)
     (site_dir / "_sass" / "spiral.scss").write_text(STYLES + logo_style(pod))
     (site_dir / "assets").mkdir(exist_ok=True)
@@ -149,8 +169,9 @@ def refresh(cfg, log, ask):
     elif "spiral" not in main.read_text():
         log(_("  assets/main.scss no importa los estilos de spiral: añade @import \"spiral\"; al final."))
     (site_dir / "img" / "redes").mkdir(parents=True, exist_ok=True)
-    for svg in ASSETS.glob("*.svg"):
-        shutil.copyfile(svg, site_dir / "img" / "redes" / svg.name)
+    for svg in ASSETS.glob("*.svg"):          # no se pisa un icono que hayas cambiado a mano
+        if not (site_dir / "img" / "redes" / svg.name).exists():
+            shutil.copyfile(svg, site_dir / "img" / "redes" / svg.name)
     if site.has_changes(site_dir):
         if not site.is_own_repo(site_dir):
             log(_("  site/ no es un repositorio git: sube su contenido tú (ver el README)."))

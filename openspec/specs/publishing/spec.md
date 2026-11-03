@@ -131,3 +131,14 @@ Antes de subir el mp3 a Archive.org, el sistema SHALL comprobar si el ítem ya c
 #### Scenario: El mp3 ha cambiado
 - **WHEN** el MD5 del mp3 local difiere del de Archive.org
 - **THEN** se sube de nuevo
+
+### Requirement: Plataformas donde está dado de alta el RSS
+Si el `.env` define `PODCAST_LISTEN_<PLATAFORMA>` (SPOTIFY, APPLE, IVOOX, AMAZON, YOUTUBEMUSIC, POCKETCASTS) con una URL `https`, la portada generada SHALL mostrar junto al enlace RSS una insignia con el logo de esa plataforma enlazada a esa URL. Un valor que no sea una URL `https` SHALL ignorarse con un aviso. Los iconos ya existentes en `img/redes/` SHALL NOT sobrescribirse.
+
+#### Scenario: Spotify configurado
+- **WHEN** `PODCAST_LISTEN_SPOTIFY=https://open.spotify.com/show/x` y se publica o retira algo
+- **THEN** la portada muestra la insignia de Spotify enlazada a esa URL
+
+#### Scenario: Valor no válido
+- **WHEN** `PODCAST_LISTEN_APPLE=podcasts.apple.com/x`
+- **THEN** no se muestra y se avisa de que se ignora
