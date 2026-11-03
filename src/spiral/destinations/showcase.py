@@ -16,11 +16,14 @@ LABELS = {"youtube": "YouTube", "bluesky": "Bluesky", "mastodon": "Mastodon", "i
 COLORS = {"youtube": "#FF0000", "bluesky": "#1185FE", "mastodon": "#6364FF", "instagram": "#FF0069",
           "x": "#000000", "tiktok": "#000000", "rss": "#FFA500", "spotify": "#1ED760",
           "applepodcasts": "#9933CC", "ivoox": "#F0762C", "amazonmusic": "#25D1DA", "youtubemusic": "#FF0000",
-          "pocketcasts": "#F43E37"}
+          "pocketcasts": "#F43E37", "podcastindex": "#F90000", "castbox": "#F55B23", "podcastaddict": "#F4842D",
+          "deezer": "#A238FF", "generic": "#555555"}
 # Dónde está el RSS dado de alta: PODCAST_LISTEN_<CLAVE>=<url del programa en esa plataforma>
 LISTEN = (("SPOTIFY", "spotify", "Spotify"), ("APPLE", "applepodcasts", "Apple Podcasts"),
           ("IVOOX", "ivoox", "iVoox"), ("AMAZON", "amazonmusic", "Amazon Music"),
-          ("YOUTUBEMUSIC", "youtubemusic", "YouTube Music"), ("POCKETCASTS", "pocketcasts", "Pocket Casts"))
+          ("YOUTUBEMUSIC", "youtubemusic", "YouTube Music"), ("POCKETCASTS", "pocketcasts", "Pocket Casts"),
+          ("PODCASTINDEX", "podcastindex", "Podcast Index"), ("CASTBOX", "castbox", "Castbox"),
+          ("PODCASTADDICT", "podcastaddict", "Podcast Addict"), ("DEEZER", "deezer", "Deezer"))
 START, END = "<!-- spiral:donde -->", "<!-- /spiral:donde -->"
 INDEX_MARK = "<!-- spiral:index -->"
 DEFAULT_INDEX = "---\nlayout: home\n---"       # el que crea site.ensure_scaffold
@@ -102,15 +105,19 @@ def logo_style(pod):
 
 
 def listen_badges(cfg, log):
-    """Insignias de las plataformas donde está dado de alta el RSS, en el orden de LISTEN."""
+    """Plataformas con el RSS dado de alta: las conocidas en el orden de LISTEN y después cualquier otra
+    PODCAST_LISTEN_<NOMBRE> con el icono genérico (los _ del nombre pasan a espacios)."""
+    known = {suffix: (key, label) for suffix, key, label in LISTEN}
+    found = {k.removeprefix("PODCAST_LISTEN_"): v for k, v in cfg.values.items()
+             if k.startswith("PODCAST_LISTEN_") and v}
+    order = [s for s in known if s in found] + sorted(s for s in found if s not in known)
     out = []
-    for suffix, key, label in LISTEN:
-        url = cfg.get(f"PODCAST_LISTEN_{suffix}")
-        if not url:
-            continue
+    for suffix in order:
+        url = found[suffix]
         if not url.startswith("https://"):
             log(_("  PODCAST_LISTEN_{name} no es una URL https: se ignora.", name=suffix))
             continue
+        key, label = known.get(suffix, ("generic", suffix.replace("_", " ").title()))
         out.append(badge(key, label, url))
     return out
 

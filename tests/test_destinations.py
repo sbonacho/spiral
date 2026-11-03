@@ -479,14 +479,16 @@ def test_index_is_the_episode_list_and_a_custom_index_is_left_alone(work, monkey
 def test_listen_platforms_appear_next_to_rss_and_bad_urls_are_ignored(work, monkeypatch):
     from spiral.destinations import showcase
     cfg = showcase_cfg(work, monkeypatch, PODCAST_LISTEN_SPOTIFY="https://open.spotify.com/show/x",
-                       PODCAST_LISTEN_IVOOX="https://www.ivoox.com/p", PODCAST_LISTEN_APPLE="podcasts.apple.com/x")
+                       PODCAST_LISTEN_IVOOX="https://www.ivoox.com/p", PODCAST_LISTEN_PODCASTINDEX="https://podcastindex.org/podcast/1", PODCAST_LISTEN_APPLE="podcasts.apple.com/x", PODCAST_LISTEN_DEEZER="https://www.deezer.com/show/1", PODCAST_LISTEN_MY_WEBSITE="https://example.com/p")
     logs = []
     destinations.publish(cfg, "a", ["site"], log=logs.append)
     index = (work / "site" / "index.md").read_text()
     header = index.split("<article")[0]
     assert "https://open.spotify.com/show/x" in header and "https://www.ivoox.com/p" in header
-    assert header.index("feed.xml") < header.index("spotify") < header.index("ivoox")
+    assert header.index("feed.xml") < header.index("spotify") < header.index("ivoox") < header.index("podcastindex")
     assert "podcasts.apple.com" not in index and any("PODCAST_LISTEN_APPLE" in m for m in logs)
+    assert header.index("podcastindex") < header.index("deezer") < header.index("My Website")
+    assert "generic.svg" in header and "https://example.com/p" in header
     assert (work / "site" / "img" / "redes" / "spotify.svg").is_file()
     (work / "site" / "img" / "redes" / "ivoox.svg").write_text("<svg>mío</svg>")
     showcase.refresh(cfg, lambda m: None, lambda k, q: False)

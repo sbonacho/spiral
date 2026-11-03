@@ -133,11 +133,15 @@ Antes de subir el mp3 a Archive.org, el sistema SHALL comprobar si el ítem ya c
 - **THEN** se sube de nuevo
 
 ### Requirement: Plataformas donde está dado de alta el RSS
-Si el `.env` define `PODCAST_LISTEN_<PLATAFORMA>` (SPOTIFY, APPLE, IVOOX, AMAZON, YOUTUBEMUSIC, POCKETCASTS) con una URL `https`, la portada generada SHALL mostrar junto al enlace RSS una insignia con el logo de esa plataforma enlazada a esa URL. Un valor que no sea una URL `https` SHALL ignorarse con un aviso. Los iconos ya existentes en `img/redes/` SHALL NOT sobrescribirse.
+Cada variable `PODCAST_LISTEN_<NOMBRE>` del `.env` con una URL `https` SHALL mostrar en la portada generada, junto al enlace RSS, una insignia enlazada a esa URL. Los nombres conocidos (SPOTIFY, APPLE, IVOOX, AMAZON, YOUTUBEMUSIC, POCKETCASTS, PODCASTINDEX, CASTBOX, PODCASTADDICT, DEEZER) SHALL usar el logo de su plataforma y salir primero, en ese orden; cualquier otro nombre SHALL usar un icono genérico y el nombre como etiqueta (los `_` pasan a espacios). Un valor que no sea una URL `https` SHALL ignorarse con un aviso. Los iconos ya existentes en `img/redes/` SHALL NOT sobrescribirse.
 
-#### Scenario: Spotify configurado
+#### Scenario: Plataforma conocida
 - **WHEN** `PODCAST_LISTEN_SPOTIFY=https://open.spotify.com/show/x` y se publica o retira algo
 - **THEN** la portada muestra la insignia de Spotify enlazada a esa URL
+
+#### Scenario: Plataforma desconocida
+- **WHEN** `PODCAST_LISTEN_MI_WEB=https://example.com/p`
+- **THEN** la portada muestra una insignia «Mi Web» con el icono genérico enlazada a esa URL
 
 #### Scenario: Valor no válido
 - **WHEN** `PODCAST_LISTEN_APPLE=podcasts.apple.com/x`
