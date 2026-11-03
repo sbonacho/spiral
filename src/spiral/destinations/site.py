@@ -26,6 +26,11 @@ def episode_url(cfg, content):
     return f"{cfg.get('SITE_URL').rstrip('/')}/episodios/{slugify(content['titulo'])}.html"
 
 
+def post_path(site_dir, meta):
+    """Post Jekyll de un episodio a partir de su episodes/<id>.json."""
+    return site_dir / "_posts" / f"{datetime.fromisoformat(meta['fecha']):%Y-%m-%d}-{meta['slug']}.md"
+
+
 def episode_date(name, fallback_ts):
     """OBS nombra los ficheros 'YYYY-MM-DD HH-MM-SS'; si no, usa la fecha del fichero."""
     m = re.match(r"(\d{4})-(\d{2})-(\d{2}) (\d{2})-(\d{2})-(\d{2})", name)
@@ -149,6 +154,13 @@ def is_own_repo(site_dir):
     return r.returncode == 0 and os.path.realpath(r.stdout.strip()) == os.path.realpath(site_dir)
 
 
+def has_changes(site_dir):
+    if not is_own_repo(site_dir):
+        return True
+    return bool(subprocess.run(["git", "-C", str(site_dir), "status", "--porcelain"],
+                               capture_output=True, text=True).stdout.strip())
+
+
 def git_publish(site_dir, message):
     git = ["git", "-C", str(site_dir)]
     subprocess.run([*git, "add", "-A"], check=True)
@@ -164,8 +176,7 @@ def unpublish(ctx, ref):
     site_dir, meta_file = cfg.site_dir, cfg.site_dir / "episodes" / f"{identifier}.json"
     if meta_file.is_file():
         meta = json.loads(meta_file.read_text())
-        post = site_dir / "_posts" / f"{datetime.fromisoformat(meta['fecha']):%Y-%m-%d}-{meta['slug']}.md"
-        post.unlink(missing_ok=True)
+        post_path(site_dir, meta).unlink(missing_ok=True)
         meta_file.unlink()
     pod = cfg.podcast()
     pod["image"] = cover_url(cfg, pod)

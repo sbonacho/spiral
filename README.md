@@ -102,6 +102,8 @@ Do the one-time setup, then fill `.env` (see [`env.example`](src/spiral/env.exam
 3. Get your Archive.org keys at <https://archive.org/account/s3.php> and set `IA_ACCESS_KEY` and `IA_SECRET_KEY` (or run `uv tool run --from internetarchive ia configure`).
 4. Publish your first episode, then **submit `SITE_URL/feed.xml` once** to the directories you want: Spotify for Creators ("I already have a podcast"), Apple Podcasts Connect, iVoox ("import from RSS"), Amazon Music for Podcasters, Podcast Index (which Pocket Casts and others read), and optionally YouTube Music. After that, every `site` publication updates them all. Cover art (`PODCAST_IMAGE`): a square JPG or PNG, 1400–3000 px.
 
+After every publication or removal, spiral also refreshes the site: each episode page shows badges with the logo of every network it was published to (linked when the link is known: YouTube, Bluesky, Mastodon), and a *Where to listen and watch* page (`/publicaciones.html`) lists them all. If `PODCAST_IMAGE` is set, it is also used as the site logo in the header. The generated styles live in `_sass/spiral.scss`; put your own after the `@import` in `assets/main.scss`. YouTube links only work for visitors once you make the video public in Studio.
+
 When `site/` is its own git repository spiral offers to commit and push it after generating files; otherwise it only generates them.
 
 ### YouTube

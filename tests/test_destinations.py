@@ -350,3 +350,78 @@ def test_youtube_asks_again_when_the_stored_authorization_has_expired(work, monk
                        url=None, log=logs.append, ask=lambda k, q: True)
     assert youtube.service(ctx) == "yt"
     assert any("caducado" in m for m in logs)
+
+
+def showcase_cfg(work, monkeypatch, **extra):
+    d = episode(work)
+    (d / "episodio.mp3").write_bytes(b"mp3")
+    (d / "transcripcion.txt").write_text("x")
+    monkeypatch.setattr(site, "upload_archive", lambda *a, **k: None)
+    monkeypatch.setattr(site, "duration", lambda p: 1)
+    return make_cfg(work, **SITE_ENV | extra)
+
+
+def test_site_publish_adds_the_publication_badges_to_post_and_listing(work, monkeypatch):
+    from spiral.destinations import showcase
+    from spiral.workspace import read_state, write_state
+    cfg = showcase_cfg(work, monkeypatch, BLUESKY_ACCOUNTS="p", X_ACCOUNTS="p")
+    assert destinations.publish(cfg, "a", ["site"], log=lambda m: None)[0].status == "ok"
+    post = next((work / "site" / "_posts").glob("*.md"))
+    assert showcase.START + showcase.END in post.read_text()               # sin redes todavía: bloque vacío
+    state = read_state(work / "published" / "a")
+    state["destinations"] |= {"bluesky/p": {"done": True, "ref": "at://did:plc:abc/app.bsky.feed.post/3k"},
+                              "x/p": {"done": True, "ref": {"manual": True}},
+                              "youtube/c": {"done": True, "ref": {"video": "VID", "shorts": {}}}}
+    write_state(work / "published" / "a", state)
+    showcase.refresh(cfg, lambda m: None, lambda k, q: False)
+    text = post.read_text()
+    assert "https://bsky.app/profile/did:plc:abc/post/3k" in text and "watch?v=VID" in text
+    assert 'class="sp-badge sp-nolink"' in text and "relative_url" in text      # X no tiene enlace
+    assert text.index("<audio") < text.index(showcase.START) < text.index("## Capítulos")
+    listing = (work / "site" / "publicaciones.md").read_text()
+    assert "permalink: /publicaciones.html" in listing and "bsky.app" in listing and "feed.xml" in listing
+    assert (work / "site" / "img" / "redes" / "youtube.svg").read_text().startswith('<svg fill="#FF0000"')
+    assert (work / "site" / "assets" / "main.scss").read_text().count("@import") == 2
+    assert ".sp-badge" in (work / "site" / "_sass" / "spiral.scss").read_text()
+
+
+def test_unpublishing_a_network_removes_its_badge(work, monkeypatch):
+    from spiral.workspace import read_state, write_state
+    cfg = showcase_cfg(work, monkeypatch, MASTODON_ACCOUNTS="p", MASTODON_P_URL="https://m.s", MASTODON_P_TOKEN="t")
+    destinations.publish(cfg, "a", ["site"], log=lambda m: None)
+    state = read_state(work / "published" / "a")
+    state["destinations"]["mastodon/p"] = {"done": True, "ref": "https://m.s/@u/123"}
+    write_state(work / "published" / "a", state)
+    from spiral.destinations import showcase
+    showcase.refresh(cfg, lambda m: None, lambda k, q: False)
+    post = next((work / "site" / "_posts").glob("*.md"))
+    assert "https://m.s/@u/123" in post.read_text()
+    state = read_state(work / "published" / "a")
+    del state["destinations"]["mastodon/p"]
+    write_state(work / "published" / "a", state)
+    showcase.refresh(cfg, lambda m: None, lambda k, q: False)
+    assert "https://m.s/@u/123" not in post.read_text()
+
+
+def test_logo_from_env_becomes_part_of_the_site_and_main_scss_is_not_overwritten(work, monkeypatch):
+    from spiral.destinations import showcase
+    (work / "site" / "img").mkdir(parents=True)
+    (work / "site" / "img" / "logo.jpeg").write_bytes(b"x")
+    (work / "site" / "assets").mkdir()
+    (work / "site" / "assets" / "main.scss").write_text("mío")
+    logs = []
+    cfg = showcase_cfg(work, monkeypatch, PODCAST_IMAGE="site/img/logo.jpeg")
+    destinations.publish(cfg, "a", ["site"], log=logs.append)
+    css = (work / "site" / "_sass" / "spiral.scss").read_text()
+    assert 'url("../img/logo.jpeg")' in css and ".site-title::before" in css
+    assert (work / "site" / "assets" / "main.scss").read_text() == "mío"
+    assert any("@import" in m for m in logs)
+    cfg = make_cfg(work, **SITE_ENV)
+    showcase.refresh(cfg, lambda m: None, lambda k, q: False)
+    assert ".site-title::before" not in (work / "site" / "_sass" / "spiral.scss").read_text()
+
+
+def test_ref_url_ignores_unknown_shapes():
+    from spiral.destinations.showcase import ref_url
+    assert ref_url("bluesky", "algo raro") is None and ref_url("youtube", "VID") is None
+    assert ref_url("mastodon", {"x": 1}) is None and ref_url("instagram", {"reels": {}}) is None

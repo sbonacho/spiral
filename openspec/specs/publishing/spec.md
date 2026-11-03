@@ -109,3 +109,14 @@ El destino `site` SHALL subir el mp3 a Archive.org, generar la entrada de blog y
 #### Scenario: Destino manual sin confirmar
 - **WHEN** se retira de `x/programa` y el usuario no confirma que lo ha borrado
 - **THEN** `x/programa` sigue constando como publicado
+
+### Requirement: Escaparate del sitio
+Tras publicar o retirar con éxito en algún destino, el sistema SHALL actualizar `site/`: cada post de episodio SHALL mostrar una insignia con el logo de cada red externa en la que consta publicado (enlazada cuando el enlace público se pueda deducir) y SHALL generarse una página `/publicaciones.html` con todos los episodios y sus insignias. Si `PODCAST_IMAGE` está definido, SHALL usarse como logo del sitio. Los estilos SHALL generarse en `_sass/spiral.scss` y `assets/main.scss` SHALL crearse solo si no existe. Un fallo al actualizar el escaparate MUST NOT cambiar el resultado de la publicación, y el cambio SHALL subirse a GitHub solo si se confirma.
+
+#### Scenario: Publicar en una red
+- **WHEN** un episodio ya está en `site` y se publica en `bluesky/programa`
+- **THEN** su post y `/publicaciones.html` muestran la insignia de Bluesky enlazada al post
+
+#### Scenario: Retirar de una red
+- **WHEN** se retira el episodio de `bluesky/programa`
+- **THEN** la insignia de Bluesky desaparece de su post y de `/publicaciones.html`

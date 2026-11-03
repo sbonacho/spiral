@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from ..errors import SpiralError
 from ..i18n import _
 from ..workspace import Workspace, read_state, write_state
-from . import bluesky, instagram, manual, mastodon, site, youtube
+from . import bluesky, instagram, manual, mastodon, showcase, site, youtube
 from .base import Context, Destination, Pending
 
 NETWORKS = (youtube.NETWORK, bluesky.NETWORK, mastodon.NETWORK, instagram.NETWORK, manual.X, manual.TIKTOK)
@@ -49,6 +49,14 @@ def _tools(cfg, ep, log, secrets):
             f.write(redact(line).replace("\n", " ") + "\n")
     say.redact = redact
     return say, journal
+
+
+def _refresh_site(cfg, say, ask):
+    """Actualiza el escaparate del sitio; un fallo aquí no invalida lo ya publicado."""
+    try:
+        showcase.refresh(cfg, say, ask)
+    except Exception as e:
+        say(_("  No pude actualizar el listado de publicaciones del sitio: {error}", error=say.redact(str(e))))
 
 
 def _check_ids(ids, dests):
@@ -118,6 +126,8 @@ def publish(cfg, name, ids, *, dry=False, force=False, log=print, ask=lambda kin
             results.append(Result(did, "failed", detail))
             say(_("- {id}: ERROR {detail}", id=did, detail=detail))
             site_failed = site_failed or d.is_site
+    if any(r.status == "ok" for r in results):
+        _refresh_site(cfg, say, ask)
     return results
 
 
@@ -167,4 +177,6 @@ def unpublish(cfg, name, ids, *, dry=False, log=print, ask=lambda kind, question
             journal(did, "unpublish-failed", detail)
             results.append(Result(did, "failed", detail))
             say(_("- {id}: ERROR {detail}", id=did, detail=detail))
+    if any(r.status == "removed" for r in results):
+        _refresh_site(cfg, say, ask)
     return results
