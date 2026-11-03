@@ -120,3 +120,14 @@ Tras publicar o retirar con éxito en algún destino, el sistema SHALL actualiza
 #### Scenario: Retirar de una red
 - **WHEN** se retira el episodio de `bluesky/programa`
 - **THEN** la insignia de Bluesky desaparece de su post y de `/publicaciones.html`
+
+### Requirement: No resubir un mp3 que no ha cambiado
+Antes de subir el mp3 a Archive.org, el sistema SHALL comprobar si el ítem ya contiene un fichero con el mismo nombre y el mismo MD5, y en ese caso SHALL omitir la subida y continuar con el resto del destino `site`. Si no se puede comprobar, SHALL subirlo.
+
+#### Scenario: Republicar sin cambios
+- **WHEN** se ejecuta `spiral publish a --to site --force` y Archive.org ya tiene el mismo mp3
+- **THEN** no se sube de nuevo y el feed y el sitio se regeneran igualmente
+
+#### Scenario: El mp3 ha cambiado
+- **WHEN** el MD5 del mp3 local difiere del de Archive.org
+- **THEN** se sube de nuevo

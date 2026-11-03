@@ -16,6 +16,12 @@ SITE_ENV = {"SITE_URL": "https://e.github.io/p", "PODCAST_TITLE": "T", "PODCAST_
             "IA_ACCESS_KEY": "k", "IA_SECRET_KEY": "s"}
 
 
+@pytest.fixture(autouse=True)
+def no_archive_lookup(monkeypatch):
+    """Nada de red: por defecto Archive.org «no tiene» el mp3."""
+    monkeypatch.setattr(site, "already_uploaded", lambda identifier, mp3: False)
+
+
 def episode(work, name="a"):
     d = work / "processed" / name
     d.mkdir(parents=True)
@@ -425,3 +431,29 @@ def test_ref_url_ignores_unknown_shapes():
     from spiral.destinations.showcase import ref_url
     assert ref_url("bluesky", "algo raro") is None and ref_url("youtube", "VID") is None
     assert ref_url("mastodon", {"x": 1}) is None and ref_url("instagram", {"reels": {}}) is None
+
+
+def test_mp3_is_not_uploaded_again_when_archive_already_has_it_unchanged(work, monkeypatch):
+    import hashlib
+    import internetarchive
+    d = episode(work)
+    (d / "episodio.mp3").write_bytes(b"mp3")
+    (d / "transcripcion.txt").write_text("x")
+    uploads = []
+    remote = {"md5": hashlib.md5(b"mp3").hexdigest()}
+
+    class Item:
+        def get_file(self, name):
+            return type("F", (), remote)()
+    monkeypatch.undo()                                   # quita el stub autouse para probar la función real
+    monkeypatch.setattr(site, "upload_archive", lambda *a, **k: uploads.append(1))
+    monkeypatch.setattr(site, "duration", lambda p: 1)
+    monkeypatch.setattr(internetarchive, "get_item", lambda identifier: Item())
+    cfg = make_cfg(work, **SITE_ENV)
+    assert destinations.publish(cfg, "a", ["site"], log=lambda m: None)[0].status == "ok"
+    assert uploads == []                                  # mismo MD5: no se sube
+    remote["md5"] = "otro"
+    assert destinations.publish(cfg, "a", ["site"], force=True, log=lambda m: None)[0].status == "ok"
+    assert len(uploads) == 1                              # el mp3 cambió: se sube
+    monkeypatch.setattr(internetarchive, "get_item", lambda identifier: (_ for _ in ()).throw(OSError("sin red")))
+    assert site.already_uploaded("x", work / "processed" / "a" / "episodio.mp3") is False

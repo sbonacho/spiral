@@ -60,6 +60,23 @@ def missing(cfg):
     return out
 
 
+def already_uploaded(identifier, mp3):
+    """True si Archive.org ya tiene ese fichero con el mismo MD5 (si no se puede comprobar, se sube)."""
+    import hashlib
+    import internetarchive
+    try:
+        remote = internetarchive.get_item(identifier).get_file(mp3.name)
+        if not remote:
+            return False
+        md5 = hashlib.md5()
+        with mp3.open("rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                md5.update(chunk)
+        return remote.md5 == md5.hexdigest()
+    except Exception:
+        return False
+
+
 def upload_archive(cfg, identifier, mp3, title, description, language):
     import internetarchive
     keys = {"access_key": cfg.get("IA_ACCESS_KEY"), "secret_key": cfg.get("IA_SECRET_KEY")}
@@ -206,8 +223,11 @@ def publish(ctx):
     identifier = f"{slugify(pod['title'])}-{fecha:%Y%m%d}-{slug}"[:100]
     audio_url = f"https://archive.org/download/{identifier}/{mp3.name}"
 
-    ctx.log(_("  subiendo el mp3 a Archive.org…"))
-    upload_archive(cfg, identifier, mp3, content["titulo"], content["resumen_corto"], pod["language"])
+    if already_uploaded(identifier, mp3):
+        ctx.log(_("  el mp3 ya está en Archive.org con el mismo contenido: no se vuelve a subir."))
+    else:
+        ctx.log(_("  subiendo el mp3 a Archive.org…"))
+        upload_archive(cfg, identifier, mp3, content["titulo"], content["resumen_corto"], pod["language"])
     site_dir = cfg.site_dir
     ensure_scaffold(site_dir, pod)
     (site_dir / "episodes").mkdir(parents=True, exist_ok=True)

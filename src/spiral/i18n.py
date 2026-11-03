@@ -137,6 +137,7 @@ EN = {
     '  assets/main.scss no importa los estilos de spiral: añade @import "spiral"; al final.': '  assets/main.scss does not import the spiral styles: add @import "spiral"; at the end.',
     '¿Subir site/ a GitHub con el listado de publicaciones?': 'Push site/ to GitHub with the publications list?',
     '  No pude actualizar el listado de publicaciones del sitio: {error}': '  Could not update the site publications list: {error}',
+    '  el mp3 ya está en Archive.org con el mismo contenido: no se vuelve a subir.': '  the mp3 is already on Archive.org with the same content: not uploading it again.',
     'Estado': 'State',
     'Duración': 'Duration',
     'Publicados (de los procesados)': 'Published (of the processed)',
