@@ -111,15 +111,15 @@ El destino `site` SHALL subir el mp3 a Archive.org, generar la entrada de blog y
 - **THEN** `x/programa` sigue constando como publicado
 
 ### Requirement: Escaparate del sitio
-Tras publicar o retirar con éxito en algún destino, el sistema SHALL actualizar `site/`: cada post de episodio SHALL mostrar una insignia con el logo de cada red externa en la que consta publicado (enlazada cuando el enlace público se pueda deducir) y SHALL generarse una página `/publicaciones.html` con todos los episodios y sus insignias. Si `PODCAST_IMAGE` está definido, SHALL usarse como logo del sitio. Los estilos SHALL generarse en `_sass/spiral.scss` y `assets/main.scss` SHALL crearse solo si no existe. Un fallo al actualizar el escaparate MUST NOT cambiar el resultado de la publicación, y el cambio SHALL subirse a GitHub solo si se confirma.
+Tras publicar o retirar con éxito en algún destino, el sistema SHALL actualizar `site/`: cada post de episodio SHALL mostrar una insignia con el logo de cada red externa en la que consta publicado (enlazada cuando el enlace público se pueda deducir) y la portada `index.md` SHALL ser el listado de todos los episodios con sus insignias. `index.md` SHALL reescribirse solo si es el de por defecto o ya lo generó spiral; uno personalizado SHALL NOT tocarse (se avisa). Si `PODCAST_IMAGE` está definido, SHALL usarse como logo del sitio. Los estilos SHALL generarse en `_sass/spiral.scss` y `assets/main.scss` SHALL crearse solo si no existe. Un fallo al actualizar el escaparate MUST NOT cambiar el resultado de la publicación, y el cambio SHALL subirse a GitHub solo si se confirma.
 
 #### Scenario: Publicar en una red
 - **WHEN** un episodio ya está en `site` y se publica en `bluesky/programa`
-- **THEN** su post y `/publicaciones.html` muestran la insignia de Bluesky enlazada al post
+- **THEN** su post y la portada muestran la insignia de Bluesky enlazada al post
 
 #### Scenario: Retirar de una red
 - **WHEN** se retira el episodio de `bluesky/programa`
-- **THEN** la insignia de Bluesky desaparece de su post y de `/publicaciones.html`
+- **THEN** la insignia de Bluesky desaparece de su post y de la portada
 
 ### Requirement: No resubir un mp3 que no ha cambiado
 Antes de subir el mp3 a Archive.org, el sistema SHALL comprobar si el ítem ya contiene un fichero con el mismo nombre y el mismo MD5, y en ese caso SHALL omitir la subida y continuar con el resto del destino `site`. Si no se puede comprobar, SHALL subirlo.

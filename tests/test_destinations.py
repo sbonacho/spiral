@@ -384,8 +384,9 @@ def test_site_publish_adds_the_publication_badges_to_post_and_listing(work, monk
     assert "https://bsky.app/profile/did:plc:abc/post/3k" in text and "watch?v=VID" in text
     assert 'class="sp-badge sp-nolink"' in text and "relative_url" in text      # X no tiene enlace
     assert text.index("<audio") < text.index(showcase.START) < text.index("## Capítulos")
-    listing = (work / "site" / "publicaciones.md").read_text()
-    assert "permalink: /publicaciones.html" in listing and "bsky.app" in listing and "feed.xml" in listing
+    listing = (work / "site" / "index.md").read_text()
+    assert "layout: default" in listing and "bsky.app" in listing and "feed.xml" in listing
+    assert "<time>" in listing and "<h2><a href=" in listing
     assert (work / "site" / "img" / "redes" / "youtube.svg").read_text().startswith('<svg fill="#FF0000"')
     assert (work / "site" / "assets" / "main.scss").read_text().count("@import") == 2
     assert ".sp-badge" in (work / "site" / "_sass" / "spiral.scss").read_text()
@@ -457,3 +458,19 @@ def test_mp3_is_not_uploaded_again_when_archive_already_has_it_unchanged(work, m
     assert len(uploads) == 1                              # el mp3 cambió: se sube
     monkeypatch.setattr(internetarchive, "get_item", lambda identifier: (_ for _ in ()).throw(OSError("sin red")))
     assert site.already_uploaded("x", work / "processed" / "a" / "episodio.mp3") is False
+
+
+def test_index_is_the_episode_list_and_a_custom_index_is_left_alone(work, monkeypatch):
+    from spiral.destinations import showcase
+    cfg = showcase_cfg(work, monkeypatch)
+    (work / "site").mkdir()
+    (work / "site" / "index.md").write_text("---\nlayout: home\n---\n")            # el de ensure_scaffold
+    (work / "site" / "publicaciones.md").write_text("---\npermalink: /publicaciones.html\n---\n")
+    destinations.publish(cfg, "a", ["site"], log=lambda m: None)
+    index = (work / "site" / "index.md").read_text()
+    assert showcase.INDEX_MARK in index and "<article" in index and "sp-lead" in index
+    assert not (work / "site" / "publicaciones.md").exists()            # la página antigua de spiral se retira
+    logs = []
+    (work / "site" / "index.md").write_text("mi portada")
+    showcase.refresh(cfg, logs.append, lambda k, q: False)
+    assert (work / "site" / "index.md").read_text() == "mi portada" and any("index.md es tuyo" in m for m in logs)

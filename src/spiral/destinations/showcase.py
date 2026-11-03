@@ -16,6 +16,8 @@ LABELS = {"youtube": "YouTube", "bluesky": "Bluesky", "mastodon": "Mastodon", "i
 COLORS = {"youtube": "#FF0000", "bluesky": "#1185FE", "mastodon": "#6364FF", "instagram": "#FF0069",
           "x": "#000000", "tiktok": "#000000", "rss": "#FFA500"}
 START, END = "<!-- spiral:donde -->", "<!-- /spiral:donde -->"
+INDEX_MARK = "<!-- spiral:index -->"
+DEFAULT_INDEX = "---\nlayout: home\n---"       # el que crea site.ensure_scaffold
 
 STYLES = """// Generado por spiral en cada publicación: tus estilos van en assets/main.scss, después del @import.
 .sp-donde { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: 1.4rem 0; }
@@ -29,6 +31,8 @@ a.sp-badge:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0, 0
 .sp-card { margin: 0 0 2rem; padding-bottom: 1rem; border-bottom: 1px solid #e8e8e8; }
 .sp-card h2 { margin-bottom: .2rem; }
 .sp-card time { color: #828282; font-size: .9rem; }
+.sp-card p { margin: .4rem 0 0; }
+.sp-lead { font-size: 1.15rem; color: #555; }
 """
 LOGO_STYLE = """.site-title { display: inline-flex; align-items: center; gap: .65rem; }
 .site-title::before { content: ""; width: 2.4rem; height: 2.4rem; border-radius: 50%;
@@ -91,6 +95,27 @@ def logo_style(pod):
     return LOGO_STYLE.replace("{url}", "../" + image[len(base):] if image.startswith(base) else image)
 
 
+def write_index(site_dir, pod, cards, log):
+    """La portada es el listado de episodios con sus insignias; solo se reescribe si es la de spiral."""
+    old = site_dir / "publicaciones.md"          # página de una versión anterior: ahora el listado es la portada
+    if old.is_file() and "permalink: /publicaciones.html" in old.read_text():
+        old.unlink()
+    index = site_dir / "index.md"
+    current = index.read_text() if index.is_file() else DEFAULT_INDEX
+    if INDEX_MARK not in current and current.strip() != DEFAULT_INDEX:
+        log(_("  index.md es tuyo: spiral no lo toca y no genera el listado de episodios."))
+        return
+    rss = badge("rss", _("Suscríbete por RSS"), "{{ '/feed.xml' | relative_url }}", raw=True)
+    body = "\n".join(
+        f'<article class="sp-card"><h2><a href="{{{{ \'/episodios/{m["slug"]}.html\' | relative_url }}}}">'
+        f'{html.escape(m["titulo"])}</a></h2><time>{m["fecha"][:10]}</time>'
+        f'<p>{html.escape(m["resumen_corto"])}</p><div class="sp-donde">{"".join(items)}</div></article>'
+        for m, items in cards)
+    index.write_text(f"---\nlayout: default\n---\n{INDEX_MARK}\n"
+                     f'<p class="sp-lead">{html.escape(pod["description"])}</p>\n'
+                     f'<div class="sp-donde">{rss}</div>\n\n{body}\n')
+
+
 def refresh(cfg, log, ask):
     """Reescribe los bloques de los posts, la página de publicaciones, los estilos y los logos; sube el cambio."""
     site_dir = cfg.site_dir
@@ -114,14 +139,7 @@ def refresh(cfg, log, ask):
             post.write_text(set_block(post.read_text(), donde(items)))
         cards.append((meta, items))
     cards.sort(key=lambda c: c[0]["fecha"], reverse=True)
-    rss = badge("rss", _("Suscríbete por RSS"), "{{ '/feed.xml' | relative_url }}", raw=True)
-    body = "\n".join(
-        f'<article class="sp-card"><h2><a href="{{{{ \'/episodios/{m["slug"]}.html\' | relative_url }}}}">'
-        f'{html.escape(m["titulo"])}</a></h2><time>{m["fecha"][:10]}</time>'
-        f'<div class="sp-donde">{"".join(items)}</div></article>' for m, items in cards)
-    (site_dir / "publicaciones.md").write_text(
-        f"---\nlayout: page\ntitle: {json.dumps(_('Dónde escuchar y ver'), ensure_ascii=False)}\n"
-        f"permalink: /publicaciones.html\n---\n\n<div class=\"sp-donde\">{rss}</div>\n\n{body}\n")
+    write_index(site_dir, pod, cards, log)
     (site_dir / "_sass").mkdir(exist_ok=True)
     (site_dir / "_sass" / "spiral.scss").write_text(STYLES + logo_style(pod))
     (site_dir / "assets").mkdir(exist_ok=True)
